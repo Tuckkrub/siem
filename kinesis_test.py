@@ -15,8 +15,8 @@ conf = (
     SparkConf()
     .setAppName("KInesisTest") \
     .set("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
-    .set("spark.hadoop.fs.s3a.access.key", "AKIAXWAJ4NY3SRVBI7IP") \
-    .set("spark.hadoop.fs.s3a.secret.key", "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") \
+    .set("spark.hadoop.fs.s3a.access.key", "ACCESS_KEY") \
+    .set("spark.hadoop.fs.s3a.secret.key", "SECRET_ACCESS_KEY") \
 )
 
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
@@ -191,6 +191,14 @@ dstream = ssc.queueStream([rdd])
 # kinesisStream.pprint()
 dstream.foreachRDD(process_rdd)
 ###################################################################
+# Create the Kinesis DStream
+# kinesisStream = KinesisUtils.createStream(
+#     ssc, kinesisAppName, kinesisStreamName, kinesisEndpointURL, kinesisRegionName,
+#     initialPositionInStream=initialPosition, awsAccessKeyId="ACCESS_KEY",awsSecretKey="SECRET_ACCESS_KEY"
+#     ,checkpointInterval=10
+# )
+# parsed_data=kinesisStream.map(lambda x:x)
+# parsed_data.foreachRDD(process_rdd)
 
 # Start the computation
 ssc.start()
