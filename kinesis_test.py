@@ -34,8 +34,8 @@ kinesisRegionName = "us-east-1"
 # indexer_error = StringIndexerModel.read().load("s3a://siemtest22/model/indexer.model")
 #######################################################################
 ###################################################local indexer###############
-indexer_dnsmasq = StringIndexerModel.read().load("C:\\Users\\A570ZD\\Documents\\GitHub\\siem\\model\\indexer_dnsmasq")
-indexer_error = StringIndexerModel.read().load("C:\\Users\\A570ZD\\Documents\\GitHub\\siem\\model\\indexer_apacheerror")
+indexer_dnsmasq = StringIndexerModel.read().load("./model/indexer_dnsmasq")
+indexer_error = StringIndexerModel.read().load("./model/indexer_apacheerror")
 ################################################################################
 
 ################regex for building key-value ######################################################################
