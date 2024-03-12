@@ -10,5 +10,12 @@ print('=============================')
 
 for i in range(len(root)):
     for j in range(len(root[i])):
-        print(root[i][j].tag, '-> ', root[i][j].text)
+        if root[i][j].tag == 'id':
+            error_id = root[i][j].text.split('|')
+            for entity in error_id:
+                print(root[i][j+1].text, ': ', 'col("entity")==', entity)
     print('=============================')
+
+
+
+# "Forbidden Directory Access_denied": (col("entity")=="AH01276"),
