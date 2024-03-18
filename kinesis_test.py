@@ -9,6 +9,11 @@ from pyspark.ml.feature import StringIndexer,StringIndexerModel
 from pyspark.conf import SparkConf
 from rule_base.rules import Apache_error
 
+### For Phase 4 ###
+from pyspark.sql.functions import from_unixtime, col, unix_timestamp, expr,lag,round,dayofweek,length,regexp_replace,count, desc,udf
+from pyspark.sql.window import Window
+from pyspark.sql.types import IntegerType
+import joblib
 
 ###############################require configuration for aws 
 conf = (
@@ -51,12 +56,14 @@ def process_dnsmasq(filtered_rdd):
     .withColumn("term", regexp_extract("message", dnsmasq_regex, 3)) \
     .withColumn("ip_addr", regexp_extract("message", dnsmasq_regex, 4)) \
     .withColumn("key", concat("response", lit(" <*> "),"term", lit(" <*>"))) \
-    .withColumn("value", array("domain", "ip_addr")) \
+    .withColumn("value1", regexp_extract("message", dnsmasq_regex, 2)) \
+    .withColumn("value2", regexp_extract("message", dnsmasq_regex, 4)) \
     .withColumn("time", concat("time", lit(" 2022"))) \
     .withColumn("epoch_timestamp", unix_timestamp("time", "MMM dd HH:mm:ss yyyy")) 
     df_indexed=indexer_dnsmasq.transform(df)
     df_indexed=df_indexed.drop("pid","time","response","domain","term","ip_addr")
     return df_indexed
+
 
 def process_apache_error(filtered_rdd):
     df=spark.createDataFrame(filtered_rdd)
@@ -81,6 +88,74 @@ def process_apache_error(filtered_rdd):
 def process_apache2_access(filtered_rdd):
     df=spark.createDataFrame(filtered_rdd)
     return df
+
+def categorize_ip(value2):
+    try:
+        # Split IP address into octets
+        octets = list(map(int, value2.split('.')))
+
+        # Check if IP is private
+        if (octets[0] == 10) or (octets[0] == 172 and 16 <= octets[1] <= 31) or (octets[0] == 192 and octets[1] == 168):
+            return 0  # Private IP
+        else:
+            return 1  # Public IP
+    except:
+        return 2  # Non-IP values
+
+def process_dnsmasq_for_pred(df_pyspark):
+    df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
+    df_pyspark = df_pyspark.withColumn("encoded_key", col("encoded_key").cast("int"))
+    df_pyspark = df_pyspark.withColumn("timestamp_datetime", from_unixtime("epoch_timestamp").cast("timestamp"))
+
+    lag_col = lag(col("epoch_timestamp")).over(Window.orderBy("epoch_timestamp"))
+    df_pyspark = df_pyspark.withColumn("time_diff_unix", round((col("epoch_timestamp") - lag_col), 1))
+    df_pyspark = df_pyspark.fillna(0, subset=["time_diff_unix"])
+    df_pyspark = df_pyspark.withColumn("time_diff_unix", col("time_diff_unix").cast("decimal(10,1)"))
+
+    df_pyspark = df_pyspark.withColumn("day_of_week", dayofweek("timestamp_datetime"))
+    
+    df_pyspark = df_pyspark.withColumn("value1_length", length("value1"))
+    df_pyspark = df_pyspark.withColumn("value2_length", length("value2"))
+
+    df_pyspark = df_pyspark.withColumn("value1_dot_count", (length("value1") - length(regexp_replace("value1", "[^.]", ""))))
+    df_pyspark = df_pyspark.withColumn("value1_hyphen_count", (length("value1") - length(regexp_replace("value1", "[^-]", ""))))
+    
+    df_pyspark = df_pyspark.withColumn("value2_dot_count", (length("value2") - length(regexp_replace("value2", "[^.]", ""))))
+    df_pyspark = df_pyspark.withColumn("value2_hyphen_count", (length("value2") - length(regexp_replace("value2", "[^-]", ""))))
+
+    df_pyspark = df_pyspark.withColumn("key_length", length("key"))
+
+    window_spec_value1 = Window().orderBy("value1")
+    window_spec_value2 = Window().orderBy("value2")
+    
+    df_pyspark = df_pyspark.withColumn("value1_count", count("value1").over(window_spec_value1))
+    df_pyspark = df_pyspark.withColumn("value2_count", count("value2").over(window_spec_value2))
+
+    # Register the UDF
+    categorize_ip_udf = udf(categorize_ip, IntegerType())
+    
+    # Apply the UDF to create a new column 'ip_category'
+    df_pyspark = df_pyspark.withColumn("value2_ip_class", categorize_ip_udf("value2"))
+
+    df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
+    df_pyspark = df_pyspark.selectExpr(
+        'encoded_key',
+        'time_diff_unix',
+        'day_of_week',
+        'value1_length',
+        'value2_length',
+        'value1_dot_count',
+        'value1_hyphen_count',
+        'value2_dot_count',
+        'value2_hyphen_count',
+        'key_length',
+        'value1_count',
+        'value2_count',
+        'value2_ip_class'  # Assuming this column needs to be added
+    )
+    
+    return df_pyspark
+
 
 def process_rdd(rdd):
     print("enter check")
@@ -121,15 +196,30 @@ def process_rdd(rdd):
             unique_owners=dataframes['dnsmasq'].select('owner').distinct()
             #############LET's seperate by log owner#################################
             print("***** phase 2 dnsmasq owner seperation ******")
+            log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
+            log_model.feature_names = None
+
+
+            broadcast_model = sc.broadcast(log_model)
+            @udf('integer')
+            def predict_data(*cols):
+                return int(broadcast_model.value.predict((cols,)))
             for row in unique_owners.collect():
                     
                     # since only 1 column is collected , so it's always at row[0]
                     unique_value = row[0]
                     df_temp = dataframes['dnsmasq'].filter(dataframes['dnsmasq']['owner'] == unique_value)
                     df_temp.show()
-                    print("***** phase 3 apache error  rule-base detection ******")
+                    print("***** phase 3 dnsmasq  rule-base detection ******")
+                    df_temp = process_dnsmasq_for_pred(df_temp)   
                     # send to anomaly module
-                    print("***** phase 4 apache error  anomaly detection ******")
+                    print("***** phase 4 dnsmasq  anomaly detection ******")
+                    
+                    df_temp.show()
+
+                    list_of_columns = df_temp.columns
+                    df_temp = df_temp.withColumn("prediction", predict_data(*list_of_columns))
+                    df_temp.show()
 
                     ########################
                     print("************ END ***********************************")

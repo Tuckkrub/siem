@@ -14,7 +14,7 @@ class Apache_error:
  
     # init method or constructor
     def __init__(self, df):
-        tree = ET.parse('D:/work/2023-2/Thesis/siem/xml_parser/0250-apache_rules.xml')
+        tree = ET.parse('C:\\Users\\A570ZD\\Desktop\\siem dev\\xml_parser\\0250-apache_rules.xml')
         root = tree.getroot()
 
         self.df = df
