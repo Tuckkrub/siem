@@ -9,6 +9,8 @@ from pyspark.ml.feature import StringIndexer,StringIndexerModel
 from pyspark.conf import SparkConf
 from rule_base.rules import Apache_error
 
+import time
+
 ### For Phase 4 ###
 from pyspark.sql.functions import from_unixtime, col, unix_timestamp, expr,lag,round,dayofweek,length,regexp_replace,count, desc,udf
 from pyspark.sql.window import Window
@@ -175,6 +177,7 @@ def process_dnsmasq_for_pred(df_pyspark):
 
 def process_rdd(rdd):
     print("enter check")
+    start_time_process = time.time()
     if not rdd.isEmpty():
         print("not empty")
         dataframes = {}
@@ -207,12 +210,20 @@ def process_rdd(rdd):
             # dataframes['apache_error'].write.mode('overwrite').parquet("C:\\Users\\A570ZD\\Desktop\\kinesis_stream\\temp\\apache_error") 
         if not dnsmasq_rdd.isEmpty():
             print("***** phase 1 dnsmasq log seperation ******")
+            
+            start_time_dns = time.time()
+
             dataframes['dnsmasq'] = process_dnsmasq(dnsmasq_rdd)
             dataframes['dnsmasq'].show()
             unique_owners=dataframes['dnsmasq'].select('owner').distinct()
-            #############LET's seperate by log owner#################################
-            print("***** phase 2 dnsmasq owner seperation ******")
+            
+            end_time_dns = time.time()
 
+            elapsed_time = end_time_dns - start_time_dns
+            print("Pre-processed time <dnsmasq_phase_1>:", elapsed_time, "seconds\n")
+
+            #############LET's seperate by log owner#################################
+            
             # Path of Master
             # log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
             log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
@@ -223,22 +234,49 @@ def process_rdd(rdd):
             @udf('integer')
             def predict_data(*cols):
                 return int(broadcast_model.value.predict((cols,)))
+            
             for row in unique_owners.collect():
-                    
+                    print("***** phase 2 dnsmasq owner seperation & furthur pre-processing ******")
+                    start_time_dns = time.time()
+
                     # since only 1 column is collected , so it's always at row[0]
                     unique_value = row[0]
                     df_temp = dataframes['dnsmasq'].filter(dataframes['dnsmasq']['owner'] == unique_value)
+                    owner = df_temp.select("owner").first()[0]
                     df_temp.show()
+
+                    df_temp = process_dnsmasq_for_pred(df_temp)  
+                    df_temp.show() 
+
+                    end_time_dns = time.time()
+
+                    elapsed_time = end_time_dns - start_time_dns
+                    print(f"Pre-processed time <dnsmasq_phase_2_{owner}>:", elapsed_time, "seconds\n")
+                    
                     print("***** phase 3 dnsmasq  rule-base detection ******")
-                    df_temp = process_dnsmasq_for_pred(df_temp)   
+                    start_time_dns = time.time()
+
+                    ##### code for rule based prediction
+                    print("XXXX nothing XXXX")
+
+                    end_time_dns = time.time()
+
+                    elapsed_time = end_time_dns - start_time_dns
+                    print(f"Rule-based detetcion time <dnsmasq_phase_3_{owner}>:", elapsed_time, "seconds\n")
+
                     # send to anomaly module
                     print("***** phase 4 dnsmasq  anomaly detection ******")
                     
-                    df_temp.show()
+                    start_time_dns = time.time()
 
                     list_of_columns = df_temp.columns
                     df_temp = df_temp.withColumn("prediction", predict_data(*list_of_columns))
                     df_temp.show()
+
+                    end_time_dns = time.time()
+
+                    elapsed_time = end_time_dns - start_time_dns
+                    print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time, "seconds\n")
 
                     ########################
                     print("************ END ***********************************")
@@ -264,6 +302,10 @@ def process_rdd(rdd):
         #             ##################
         
             # dataframes['apache2_access'].write.mode('overwrite').parquet("C:\\Users\\A570ZD\\Desktop\\kinesis_stream\\temp\\apache2_access") 
+                    
+        end_time_process = time.time()
+        elapsed_time_process = end_time_process - start_time_process
+        print("Overall elapsed time <kinesis_test.py>:", elapsed_time_process, "seconds\n")                
 
 
 
