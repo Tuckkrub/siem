@@ -101,6 +101,14 @@ def categorize_ip(value2):
             return 1  # Public IP
     except:
         return 2  # Non-IP values
+    
+# Custom function to count dots
+def count_dots(s):
+    return s.count('.')
+
+# Custom function to count hyphens
+def count_hyphens(s):
+    return s.count('-')
 
 def process_dnsmasq_for_pred(df_pyspark):
     df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
@@ -117,11 +125,19 @@ def process_dnsmasq_for_pred(df_pyspark):
     df_pyspark = df_pyspark.withColumn("value1_length", length("value1"))
     df_pyspark = df_pyspark.withColumn("value2_length", length("value2"))
 
-    df_pyspark = df_pyspark.withColumn("value1_dot_count", (length("value1") - length(regexp_replace("value1", "[^.]", ""))))
-    df_pyspark = df_pyspark.withColumn("value1_hyphen_count", (length("value1") - length(regexp_replace("value1", "[^-]", ""))))
+    count_dots_udf = udf(count_dots, IntegerType())
+    count_hyphens_udf = udf(count_hyphens, IntegerType())
     
-    df_pyspark = df_pyspark.withColumn("value2_dot_count", (length("value2") - length(regexp_replace("value2", "[^.]", ""))))
-    df_pyspark = df_pyspark.withColumn("value2_hyphen_count", (length("value2") - length(regexp_replace("value2", "[^-]", ""))))
+
+    ##### new 
+
+    # Apply UDFs to DataFrame
+    df_pyspark = df_pyspark.withColumn("value1_dot_count", count_dots_udf("value1"))
+    df_pyspark = df_pyspark.withColumn("value1_hyphen_count", count_hyphens_udf("value1"))
+    df_pyspark = df_pyspark.withColumn("value2_dot_count", count_dots_udf("value2"))
+    df_pyspark = df_pyspark.withColumn("value2_hyphen_count", count_hyphens_udf("value2"))
+
+    ##### new 
 
     df_pyspark = df_pyspark.withColumn("key_length", length("key"))
 
@@ -167,24 +183,24 @@ def process_rdd(rdd):
         dnsmasq_rdd = json_rdd.filter(lambda x: x.get('log_format') == 'dnsmasq')
         apache2_access=json_rdd.filter(lambda x:x.get('log_format')=="apache2_access")
 
-        if not apache_error.isEmpty():
-            print("***** phase 1 apache error log seperation ******")
-            dataframes['apache_error'] = process_apache_error(apache_error)
-            dataframes['apache_error'].show()
-            unique_owners=dataframes['apache_error'].select('owner').distinct()
-            #############LET's seperate by log owner#################################
-            print("***** phase 2 apache error owner seperation ******")
-            for row in unique_owners.collect():
+        # if not apache_error.isEmpty():
+        #     print("***** phase 1 apache error log seperation ******")
+        #     dataframes['apache_error'] = process_apache_error(apache_error)
+        #     dataframes['apache_error'].show()
+        #     unique_owners=dataframes['apache_error'].select('owner').distinct()
+        #     #############LET's seperate by log owner#################################
+        #     print("***** phase 2 apache error owner seperation ******")
+        #     for row in unique_owners.collect():
                     
-                    # since only 1 column is collected , so it's always at row[0]
-                    unique_value = row[0]
-                    df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
-                    df_temp.show()
-                    print("***** phase 3 apache error  rule-base detection ******")
-                    df_checked=Apache_error(df_temp).error_check()
-                    df_checked.show(truncate=False)
-                    # send to anomaly module
-                    print("***** phase 4 apache error  anomaly detection ******")
+        #             # since only 1 column is collected , so it's always at row[0]
+        #             unique_value = row[0]
+        #             df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
+        #             df_temp.show()
+        #             print("***** phase 3 apache error  rule-base detection ******")
+        #             df_checked=Apache_error(df_temp).error_check()
+        #             df_checked.show(truncate=False)
+        #             # send to anomaly module
+        #             print("***** phase 4 apache error  anomaly detection ******")
 
                     # ######################
                     
@@ -196,9 +212,12 @@ def process_rdd(rdd):
             unique_owners=dataframes['dnsmasq'].select('owner').distinct()
             #############LET's seperate by log owner#################################
             print("***** phase 2 dnsmasq owner seperation ******")
-            log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
-            log_model.feature_names = None
 
+            # Path of Master
+            # log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
+            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
+            
+            log_model.feature_names = None
 
             broadcast_model = sc.broadcast(log_model)
             @udf('integer')
@@ -226,23 +245,23 @@ def process_rdd(rdd):
                     
            
             # dataframes['dnsmasq'].write.mode('overwrite').parquet("C:\\Users\\A570ZD\\Desktop\\kinesis_stream\\temp\\dnsmasq") 
-        if not apache2_access.isEmpty():
-            print("***** phase 1 apache2 access log seperation ******")
-            dataframes['apache2_access']=process_apache2_access(apache2_access)
-            dataframes['apache2_access'].show()
-            unique_owners=dataframes['apache2_access'].select('owner').distinct()
-            #############LET's seperate by log owner#################################
-            print("***** phase 2 apache2 access owner seperation ******")
-            for row in unique_owners.collect():
+        # if not apache2_access.isEmpty():
+        #     print("***** phase 1 apache2 access log seperation ******")
+        #     dataframes['apache2_access']=process_apache2_access(apache2_access)
+        #     dataframes['apache2_access'].show()
+        #     unique_owners=dataframes['apache2_access'].select('owner').distinct()
+        #     #############LET's seperate by log owner#################################
+        #     print("***** phase 2 apache2 access owner seperation ******")
+        #     for row in unique_owners.collect():
                     
-                    # since only 1 column is collected , so it's always at row[0]
-                    unique_value = row[0]
-                    df_temp = dataframes['apache2_access'].filter(dataframes['apache2_access']['owner'] == unique_value)
-                    df_temp.show()
-                    print("***** phase 3 apache error  rule-base detection ******")
-                    # send to anomaly module
-                    print("***** phase 4 apache error  anomaly detection ******")
-                    ##################
+        #             # since only 1 column is collected , so it's always at row[0]
+        #             unique_value = row[0]
+        #             df_temp = dataframes['apache2_access'].filter(dataframes['apache2_access']['owner'] == unique_value)
+        #             df_temp.show()
+        #             print("***** phase 3 apache error  rule-base detection ******")
+        #             # send to anomaly module
+        #             print("***** phase 4 apache error  anomaly detection ******")
+        #             ##################
         
             # dataframes['apache2_access'].write.mode('overwrite').parquet("C:\\Users\\A570ZD\\Desktop\\kinesis_stream\\temp\\apache2_access") 
 
