@@ -113,7 +113,7 @@ def count_hyphens(s):
     return s.count('-')
 
 def process_dnsmasq_for_pred(df_pyspark):
-    df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
+    # df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
     df_pyspark = df_pyspark.withColumn("encoded_key", col("encoded_key").cast("int"))
     df_pyspark = df_pyspark.withColumn("timestamp_datetime", from_unixtime("epoch_timestamp").cast("timestamp"))
 
@@ -154,23 +154,6 @@ def process_dnsmasq_for_pred(df_pyspark):
     
     # Apply the UDF to create a new column 'ip_category'
     df_pyspark = df_pyspark.withColumn("value2_ip_class", categorize_ip_udf("value2"))
-
-    df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
-    df_pyspark = df_pyspark.selectExpr(
-        'encoded_key',
-        'time_diff_unix',
-        'day_of_week',
-        'value1_length',
-        'value2_length',
-        'value1_dot_count',
-        'value1_hyphen_count',
-        'value2_dot_count',
-        'value2_hyphen_count',
-        'key_length',
-        'value1_count',
-        'value2_count',
-        'value2_ip_class'  # Assuming this column needs to be added
-    )
     
     return df_pyspark
 
@@ -226,7 +209,7 @@ def process_rdd(rdd):
             
             # Path of Master
             # log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
-            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
+            log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev2\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
             
             log_model.feature_names = None
 
@@ -269,14 +252,36 @@ def process_rdd(rdd):
                     
                     start_time_dns = time.time()
 
-                    list_of_columns = df_temp.columns
-                    df_temp = df_temp.withColumn("prediction", predict_data(*list_of_columns))
-                    df_temp.show()
+                    df_pyspark = df_temp.alias("df_pyspark")
+                    df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
+                    df_pyspark = df_pyspark.selectExpr(
+                        'encoded_key',
+                        'time_diff_unix',
+                        'day_of_week',
+                        'value1_length',
+                        'value2_length',
+                        'value1_dot_count',
+                        'value1_hyphen_count',
+                        'value2_dot_count',
+                        'value2_hyphen_count',
+                        'key_length',
+                        'value1_count',
+                        'value2_count',
+                        'value2_ip_class'  # Assuming this column needs to be added
+                    )
+
+                    list_of_columns = df_pyspark.columns
+                    df_pyspark = df_pyspark.withColumn("prediction", predict_data(*list_of_columns))
+                    df_pyspark.show()
 
                     end_time_dns = time.time()
 
                     elapsed_time = end_time_dns - start_time_dns
+                    
                     print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time, "seconds\n")
+                    print("******** phase 5 rule creation **********")
+                    
+
 
                     ########################
                     print("************ END ***********************************")
