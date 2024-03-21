@@ -14,7 +14,7 @@ import time
 ### For Phase 4 ###
 from pyspark.sql.functions import from_unixtime, col, unix_timestamp, expr,lag,round,dayofweek,length,regexp_replace,count, desc,udf
 from pyspark.sql.window import Window
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType,FloatType
 import joblib
 
 ###############################require configuration for aws 
@@ -104,50 +104,100 @@ def categorize_ip(value2):
     except:
         return 2  # Non-IP values
     
-# Custom function to count dots
 def count_dots(s):
     return s.count('.')
 
-# Custom function to count hyphens
 def count_hyphens(s):
     return s.count('-')
+
+def count_slash(s):
+    return s.count('/')
+
+def count_asterisk(s):
+    return s.count('*')
+
+def count_capitals(value):
+    return sum(1 for c in value if c.isupper())
+
+def has_microsoft_extension(value):
+    microsoft_extensions = ['doc', 'docx', 'odt', 'pages', 'rtf', 'txt', 'wpd', 'wps',
+                            'csv', 'numbers', 'ods', 'xls', 'xlsx',
+                            'asp', 'aspx', 'css', 'htm', 'html', 'jsp', 'php', 'xml',
+                            'afdesign', 'ai', 'cad', 'cdr', 'drw', 'dwg', 'eps', 'odg', 'svg', 'vsdx',
+                            'afpub', 'indd', 'pdf', 'pdfxml', 'pmd', 'pub', 'qxp',
+                            'c', 'cpp', 'cs', 'java', 'js', 'json', 'py', 'sql', 'swift', 'vb',
+                            '7z', 'rar', 'tar', 'tar.gz', 'zip',
+                            'bak', 'cfg', 'conf', 'ini', 'msi', 'sys', 'tmp',
+                            'app', 'bat', 'bin', 'cmd', 'com', 'exe', 'vbs', 'x86']
+    return 1 if any(ext in value.lower() for ext in microsoft_extensions) else 0
+
+def calculate_entropy(value):
+    import numpy as np
+    counts = {}
+    for c in value:
+        counts[c] = counts.get(c, 0) + 1
+    probabilities = [count / len(value) for count in counts.values()]
+    entropy_value = sum(-p * np.log2(p) for p in probabilities)
+    return entropy_value
+def is_human_readable(entropy_value, threshold=3.0):
+    return 1 if entropy_value < threshold else 0
+
+
 
 def process_dnsmasq_for_pred(df_pyspark):
     df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
     df_pyspark = df_pyspark.withColumn("encoded_key", col("encoded_key").cast("int"))
-    df_pyspark = df_pyspark.withColumn("timestamp_datetime", from_unixtime("epoch_timestamp").cast("timestamp"))
+    df_pyspark = df_pyspark.withColumn("key_length", length("key"))
 
-    lag_col = lag(col("epoch_timestamp")).over(Window.orderBy("epoch_timestamp"))
-    df_pyspark = df_pyspark.withColumn("time_diff_unix", round((col("epoch_timestamp") - lag_col), 1))
-    df_pyspark = df_pyspark.fillna(0, subset=["time_diff_unix"])
-    df_pyspark = df_pyspark.withColumn("time_diff_unix", col("time_diff_unix").cast("decimal(10,1)"))
-
-    df_pyspark = df_pyspark.withColumn("day_of_week", dayofweek("timestamp_datetime"))
+    # df_pyspark = df_pyspark.withColumn("timestamp_datetime", from_unixtime("epoch_timestamp").cast("timestamp"))
+    # lag_col = lag(col("epoch_timestamp")).over(Window.orderBy("epoch_timestamp"))
+    # df_pyspark = df_pyspark.withColumn("time_diff_unix", round((col("epoch_timestamp") - lag_col), 1))
+    # df_pyspark = df_pyspark.fillna(0, subset=["time_diff_unix"])
+    # df_pyspark = df_pyspark.withColumn("time_diff_unix", col("time_diff_unix").cast("decimal(10,1)"))
+    # df_pyspark = df_pyspark.withColumn("day_of_week", dayofweek("timestamp_datetime"))
     
     df_pyspark = df_pyspark.withColumn("value1_length", length("value1"))
     df_pyspark = df_pyspark.withColumn("value2_length", length("value2"))
 
     count_dots_udf = udf(count_dots, IntegerType())
     count_hyphens_udf = udf(count_hyphens, IntegerType())
+    count_slash_udf = udf(count_slash, IntegerType())
+    count_asterisk_udf = udf(count_asterisk, IntegerType())
     
-
-    ##### new 
-
-    # Apply UDFs to DataFrame
     df_pyspark = df_pyspark.withColumn("value1_dot_count", count_dots_udf("value1"))
     df_pyspark = df_pyspark.withColumn("value1_hyphen_count", count_hyphens_udf("value1"))
+    df_pyspark = df_pyspark.withColumn("value1_slash_count", count_slash_udf("value1"))
+    df_pyspark = df_pyspark.withColumn("value1_asterisk_count", count_asterisk_udf("value1"))
+
+    count_capitals_udf = udf(count_capitals, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value1_capital_count", count_capitals_udf(col("value1")))
+
+    has_microsoft_extension_udf = udf(has_microsoft_extension, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value1_has_file_extensions", has_microsoft_extension_udf(col("value1")))
+
+    calculate_entropy_udf = udf(calculate_entropy, FloatType())
+    is_human_readable_udf = udf(is_human_readable, IntegerType())
+    df_pyspark = df_pyspark.withColumn("entropy", calculate_entropy_udf(col("value1"))) # Pending to DROP
+    df_pyspark = df_pyspark.withColumn("value1_human_readable", is_human_readable_udf(col("entropy")))
+
+    ###########
+
     df_pyspark = df_pyspark.withColumn("value2_dot_count", count_dots_udf("value2"))
     df_pyspark = df_pyspark.withColumn("value2_hyphen_count", count_hyphens_udf("value2"))
+    df_pyspark = df_pyspark.withColumn("value2_slash_count", count_slash_udf("value2"))
+    df_pyspark = df_pyspark.withColumn("value2_asterisk_count", count_asterisk_udf("value2"))
 
-    ##### new 
+    count_capitals_udf = udf(count_capitals, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value2_capital_count", count_capitals_udf(col("value2")))
 
-    df_pyspark = df_pyspark.withColumn("key_length", length("key"))
+    has_microsoft_extension_udf = udf(has_microsoft_extension, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value2_has_file_extensions", has_microsoft_extension_udf(col("value2")))
 
-    window_spec_value1 = Window().orderBy("value1")
-    window_spec_value2 = Window().orderBy("value2")
+    # window_spec_value1 = Window().orderBy("value1")
+    # window_spec_value2 = Window().orderBy("value2")
     
-    df_pyspark = df_pyspark.withColumn("value1_count", count("value1").over(window_spec_value1))
-    df_pyspark = df_pyspark.withColumn("value2_count", count("value2").over(window_spec_value2))
+    # df_pyspark = df_pyspark.withColumn("value1_count", count("value1").over(window_spec_value1))
+    # df_pyspark = df_pyspark.withColumn("value2_count", count("value2").over(window_spec_value2))
 
     # Register the UDF
     categorize_ip_udf = udf(categorize_ip, IntegerType())
@@ -155,21 +205,41 @@ def process_dnsmasq_for_pred(df_pyspark):
     # Apply the UDF to create a new column 'ip_category'
     df_pyspark = df_pyspark.withColumn("value2_ip_class", categorize_ip_udf("value2"))
 
-    df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
+    # df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
+    # df_pyspark = df_pyspark.selectExpr(
+    #     'encoded_key',
+    #     'time_diff_unix',
+    #     'day_of_week',
+    #     'value1_length',
+    #     'value2_length',
+    #     'value1_dot_count',
+    #     'value1_hyphen_count',
+    #     'value2_dot_count',
+    #     'value2_hyphen_count',
+    #     'key_length',
+    #     'value1_count',
+    #     'value2_count',
+    #     'value2_ip_class'  # Assuming this column needs to be added
+    # )
     df_pyspark = df_pyspark.selectExpr(
         'encoded_key',
-        'time_diff_unix',
-        'day_of_week',
+        'key_length',
         'value1_length',
         'value2_length',
         'value1_dot_count',
         'value1_hyphen_count',
+        'value1_slash_count',
+        'value1_asterisk_count',
+        'value1_capital_count',
+        'value1_has_file_extensions',
+        'value1_human_readable',
         'value2_dot_count',
         'value2_hyphen_count',
-        'key_length',
-        'value1_count',
-        'value2_count',
-        'value2_ip_class'  # Assuming this column needs to be added
+        'value2_slash_count',
+        'value2_asterisk_count',
+        'value2_capital_count',
+        'value2_has_file_extensions',
+        'value2_ip_class'
     )
     
     return df_pyspark
@@ -226,7 +296,7 @@ def process_rdd(rdd):
             
             # Path of Master
             # log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
-            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
+            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
             
             log_model.feature_names = None
 
