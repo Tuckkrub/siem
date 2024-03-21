@@ -296,7 +296,7 @@ def process_rdd(rdd):
             
             # Path of Master
             # log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
-            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier3.joblib')
+            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
             
             log_model.feature_names = None
 
