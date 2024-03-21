@@ -43,4 +43,33 @@ class Apache_error:
         .withColumn("srcport",regexp_extract('client',ip_regex,2))
         result_df = df[df['detection'] != ""].select(['srcip', 'detection']).groupBy('srcip', 'detection').agg(count('*').alias('count')).distinct()
         return result_df
+
+class Dnsmasq:
+
+    # init method or constructor
+    def __init__(self,unique_value,df,):
+
+        setrule_df = spark.read.csv(path.format(unique_value=unique_value))
+        setrule_list = setrule_df.rdd.flatMap(lambda x: x).collect()
+
+        self.df = df
+        self.rule_file={}
+
+        for item in filtered_list:
+            rule_list.update({"Malicious IP: "+item:(col("entity")==item)})
+    
+    def error_check(self):
+        entity_regex=r'(\S+):'
+        ip_regex=r'(\d+.\d+.\d+.\d+):?(\d+)?'
+        df = self.df.withColumn("entity", regexp_extract("entity", entity_regex, 1))
+        detections = []
+        for rule, condition in self.rule_file.items():
+            detections.append(when(condition, rule))
+        df = df.withColumn("detection", concat_ws(",", *detections))
+        df=df.withColumn("srcip",regexp_extract('client',ip_regex,1)) \
+        .withColumn("srcport",regexp_extract('client',ip_regex,2))
+        result_df = df[df['detection'] != ""].select(['srcip', 'detection']).groupBy('srcip', 'detection').agg(count('*').alias('count')).distinct()
+        return result_df
+
+        
  
