@@ -1,13 +1,13 @@
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kinesis import KinesisUtils, InitialPositionInStream
-from pyspark.sql.functions import col,regexp_extract,concat,lit,array,unix_timestamp,when
+from pyspark.sql.functions import col,regexp_extract,concat,lit,array,unix_timestamp,when,row_number
 from pyspark.sql import Row
 from pyspark.sql import SparkSession
 import json 
 from pyspark.ml.feature import StringIndexer,StringIndexerModel
 from pyspark.conf import SparkConf
-from rule_base.rules import Apache_error
+from rule_base.rules import Apache_error,Dnsmasq
 
 import time
 
@@ -63,7 +63,7 @@ def process_dnsmasq(filtered_rdd):
     .withColumn("time", concat("time", lit(" 2022"))) \
     .withColumn("epoch_timestamp", unix_timestamp("time", "MMM dd HH:mm:ss yyyy")) 
     df_indexed=indexer_dnsmasq.transform(df)
-    df_indexed=df_indexed.drop("pid","time","response","domain","term","ip_addr")
+    df_indexed=df_indexed.drop("pid","time","domain","term","ip_addr")
     return df_indexed
 
 
@@ -145,7 +145,7 @@ def is_human_readable(entropy_value, threshold=3.0):
 
 
 def process_dnsmasq_for_pred(df_pyspark):
-    # df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
+    df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
     df_pyspark = df_pyspark.withColumn("encoded_key", col("encoded_key").cast("int"))
     df_pyspark = df_pyspark.withColumn("key_length", length("key"))
 
@@ -204,8 +204,6 @@ def process_dnsmasq_for_pred(df_pyspark):
     
     # Apply the UDF to create a new column 'ip_category'
     df_pyspark = df_pyspark.withColumn("value2_ip_class", categorize_ip_udf("value2"))
-<<<<<<< HEAD
-=======
 
     # df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
     # df_pyspark = df_pyspark.selectExpr(
@@ -243,7 +241,6 @@ def process_dnsmasq_for_pred(df_pyspark):
         'value2_has_file_extensions',
         'value2_ip_class'
     )
->>>>>>> 626eae9da320da4e941b488e8e37fd6296458918
     
     return df_pyspark
 
@@ -298,12 +295,8 @@ def process_rdd(rdd):
             #############LET's seperate by log owner#################################
             
             # Path of Master
-            # log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
-<<<<<<< HEAD
-            log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev2\\model\\ML_trained_model\\RandomForestClassifier2.joblib')
-=======
-            log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
->>>>>>> 626eae9da320da4e941b488e8e37fd6296458918
+            log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev2\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
+            # log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
             
             log_model.feature_names = None
 
@@ -317,14 +310,14 @@ def process_rdd(rdd):
                     start_time_dns = time.time()
 
                     # since only 1 column is collected , so it's always at row[0]
-                    unique_value = row[0]
-                    df_temp = dataframes['dnsmasq'].filter(dataframes['dnsmasq']['owner'] == unique_value)
-                    owner = df_temp.select("owner").first()[0]
+                    owner = row[0]
+                    df_temp = dataframes['dnsmasq'].filter(dataframes['dnsmasq']['owner'] == owner)
+                    # owner = df_temp.select("owner").first()[0]
                     df_temp.show()
-
-                    df_temp = process_dnsmasq_for_pred(df_temp)  
-                    df_temp.show() 
-
+                    df_pyspark = df_temp.alias("df_pyspark")
+                    
+                    # df_temp.show() 
+                    
                     end_time_dns = time.time()
 
                     elapsed_time = end_time_dns - start_time_dns
@@ -334,8 +327,19 @@ def process_rdd(rdd):
                     start_time_dns = time.time()
 
                     ##### code for rule based prediction
-                    print("XXXX nothing XXXX")
+                    df_dnsmasq_rule=Dnsmasq(df=df_pyspark,unique_value=owner)
+                    if df_dnsmasq_rule.exist:
+                        df_check,for_anomaly_df=df_dnsmasq_rule.error_check()
+                        if not df_check.rdd.isEmpty():
+                            df_check.show()
+                        else:
+                            print("XXXX nothing XXXX")
+                    else:
+                        for_anomaly_df=df_pyspark.alias("for_anomaly_df")
+                        print("XXXX nothing XXXX")
 
+                    # for_anomaly_df = for_anomaly_df.filter(for_anomaly_df['detection'] == "")
+                    for_anomaly_df.show()
                     end_time_dns = time.time()
 
                     elapsed_time = end_time_dns - start_time_dns
@@ -345,37 +349,36 @@ def process_rdd(rdd):
                     print("***** phase 4 dnsmasq  anomaly detection ******")
                     
                     start_time_dns = time.time()
-
-                    df_pyspark = df_temp.alias("df_pyspark")
-                    df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
-                    df_pyspark = df_pyspark.selectExpr(
-                        'encoded_key',
-                        'time_diff_unix',
-                        'day_of_week',
-                        'value1_length',
-                        'value2_length',
-                        'value1_dot_count',
-                        'value1_hyphen_count',
-                        'value2_dot_count',
-                        'value2_hyphen_count',
-                        'key_length',
-                        'value1_count',
-                        'value2_count',
-                        'value2_ip_class'  # Assuming this column needs to be added
-                    )
-
-                    list_of_columns = df_pyspark.columns
-                    df_pyspark = df_pyspark.withColumn("prediction", predict_data(*list_of_columns))
-                    df_pyspark.show()
+                    df_temp = process_dnsmasq_for_pred(for_anomaly_df)  
+                    list_of_columns = df_temp.columns
+                    df_temp = df_temp.withColumn("prediction", predict_data(*list_of_columns))
+                    df_temp.show()
 
                     end_time_dns = time.time()
 
                     elapsed_time = end_time_dns - start_time_dns
-                    
                     print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time, "seconds\n")
-                    print("******** phase 5 rule creation **********")
-                    
+                    print("*****phase 5 create rule********")
+                    prediction_column=df_temp.select("prediction")
 
+                    w = Window().orderBy(lit('A'))
+                    prediction_column = prediction_column.withColumn('id', row_number().over(w))
+                    for_anomaly_df = for_anomaly_df.withColumn('id', row_number().over(w))
+
+                    #join together both DataFrames using 'id' column
+                    for_anomaly_df = for_anomaly_df.join(prediction_column, on=['id']).drop('id')
+                    for_anomaly_df=for_anomaly_df.select('response','value1',"value2","prediction")
+                    # for_anomaly_df.show()
+                    anomalies_df=for_anomaly_df[for_anomaly_df['prediction']==1].drop('prediction')
+                    if not for_anomaly_df.rdd.isEmpty():
+                        filtered_df = anomalies_df.filter((anomalies_df["response"].like("%query%"))).select("value2").distinct()
+                        filtered_df.show()
+                        if not filtered_df.rdd.isEmpty():
+                            filtered_df.write.csv("./rule_base/{unique_value}/malicious_ip.csv".format(unique_value=owner),mode="append")
+                        else:
+                            print('No rule generated ')
+                    else:
+                        print("No rule generated")
 
                     ########################
                     print("************ END ***********************************")
@@ -419,18 +422,19 @@ data=[
 '{"host":"172.17.130.196","owner":"client01","log_format":"apache2_access","user":"-","method":"GET","path":"/wp-includes/css/dist/block-library/style.min.css?ver=5.8.3","code":"200","size":"10846","referer":"http://intranet.price.fox.org/","agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/95.0.4638.69 Safari/537.36"}',
 '{"host":"172.17.130.196","owner":"client01","log_format":"apache2_access","user":"-","method":"GET","path":"/wp-content/themes/go/dist/css/design-styles/style-traditional.min.css?ver=1.5.1","code":"200","size":"1489","referer":"http://intranet.price.fox.org/","agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/95.0.4638.69 Safari/537.36"}',
 '{"host":"172.17.130.196","owner":"client01","log_format":"apache2_access","user":"-","method":"GET","path":"/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.3.2","code":"200","size":"4505","referer":"http://intranet.price.fox.org/","agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/95.0.4638.69 Safari/537.36"}',
-'{"time":"Jan 15 00:50:49","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"forwarded 3x6-.56-.puyHMO65WQay9W50yFuPHzuA0gKxMHT9YpNIt5hMsnVYHTMJa*Gn5RwujF/N-.Wh4YPx4FFIAGRk1A/iDOg8bNd9EVRM2Gn0E4o3GtC7cxZqn0xupfxhyW2cqm-.dFr/sQ7M4FyQ8btKYS/PgpaTHQhHmECqSBh63websgGDqT2YgU6dorqo/WW9-.customers_2020.xlsx.ycgjslfptkev.com to 192.168.255.254"}',
-'{"time":"Jan 15 00:50:49","owner":"client02","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"reply 3x6-.56-.puyHMO65WQay9W50yFuPHzuA0gKxMHT9YpNIt5hMsnVYHTMJa*Gn5RwujF/N-.Wh4YPx4FFIAGRk1A/iDOg8bNd9EVRM2Gn0E4o3GtC7cxZqn0xupfxhyW2cqm-.dFr/sQ7M4FyQ8btKYS/PgpaTHQhHmECqSBh63websgGDqT2YgU6dorqo/WW9-.customers_2020.xlsx.ycgjslfptkev.com is 195.128.194.168"}',
-'{"time":"Jan 15 00:51:08","owner":"client02","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"query[A] 3x6-.57-.aSXmHVvNtPlI6nn7sMgzIBxUqwKaz4Fw34iaUUB91wYosNXhQw/3hqP3lEhJ-.FdC1BOmcTp10hjUtERubfqSWkqWmbX03zRTNciAh*pn4kHmf8NjdkJW19Vzg-.G08nsV1ABGmhIYjhSU7SLGxnitbSiX0R*UBA563v93Pd3OpTRiU/PPUpKCiI-.customers_2020.xlsx.ycgjslfptkev.com from 10.35.33.111"}',
-'{"time":"Jan 15 00:51:08","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"forwarded 3x6-.57-.aSXmHVvNtPlI6nn7sMgzIBxUqwKaz4Fw34iaUUB91wYosNXhQw/3hqP3lEhJ-.FdC1BOmcTp10hjUtERubfqSWkqWmbX03zRTNciAh*pn4kHmf8NjdkJW19Vzg-.G08nsV1ABGmhIYjhSU7SLGxnitbSiX0R*UBA563v93Pd3OpTRiU/PPUpKCiI-.customers_2020.xlsx.ycgjslfptkev.com to 192.168.255.254"}',
-'{"time":"Jan 15 00:51:08","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"reply 3x6-.57-.aSXmHVvNtPlI6nn7sMgzIBxUqwKaz4Fw34iaUUB91wYosNXhQw/3hqP3lEhJ-.FdC1BOmcTp10hjUtERubfqSWkqWmbX03zRTNciAh*pn4kHmf8NjdkJW19Vzg-.G08nsV1ABGmhIYjhSU7SLGxnitbSiX0R*UBA563v93Pd3OpTRiU/PPUpKCiI-.customers_2020.xlsx.ycgjslfptkev.com is 195.128.194.168"}',
-'{"time":"Jan 15 00:51:09","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"query[A] motd.ubuntu.com from 10.35.35.118"}',
-'{"time":"Jan 15 00:50:49","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"forwarded 3x6-.56-.puyHMO65WQay9W50yFuPHzuA0gKxMHT9YpNIt5hMsnVYHTMJa*Gn5RwujF/N-.Wh4YPx4FFIAGRk1A/iDOg8bNd9EVRM2Gn0E4o3GtC7cxZqn0xupfxhyW2cqm-.dFr/sQ7M4FyQ8btKYS/PgpaTHQhHmECqSBh63websgGDqT2YgU6dorqo/WW9-.customers_2020.xlsx.ycgjslfptkev.com to 192.168.255.254"}',
-'{"time":"Jan 15 00:50:49","owner":"client02","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"reply 3x6-.56-.puyHMO65WQay9W50yFuPHzuA0gKxMHT9YpNIt5hMsnVYHTMJa*Gn5RwujF/N-.Wh4YPx4FFIAGRk1A/iDOg8bNd9EVRM2Gn0E4o3GtC7cxZqn0xupfxhyW2cqm-.dFr/sQ7M4FyQ8btKYS/PgpaTHQhHmECqSBh63websgGDqT2YgU6dorqo/WW9-.customers_2020.xlsx.ycgjslfptkev.com is 195.128.194.168"}',
-'{"time":"Jan 15 00:51:08","owner":"client02","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"query[A] 3x6-.57-.aSXmHVvNtPlI6nn7sMgzIBxUqwKaz4Fw34iaUUB91wYosNXhQw/3hqP3lEhJ-.FdC1BOmcTp10hjUtERubfqSWkqWmbX03zRTNciAh*pn4kHmf8NjdkJW19Vzg-.G08nsV1ABGmhIYjhSU7SLGxnitbSiX0R*UBA563v93Pd3OpTRiU/PPUpKCiI-.customers_2020.xlsx.ycgjslfptkev.com from 10.35.33.111"}',
-'{"time":"Jan 15 00:51:08","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"forwarded 3x6-.57-.aSXmHVvNtPlI6nn7sMgzIBxUqwKaz4Fw34iaUUB91wYosNXhQw/3hqP3lEhJ-.FdC1BOmcTp10hjUtERubfqSWkqWmbX03zRTNciAh*pn4kHmf8NjdkJW19Vzg-.G08nsV1ABGmhIYjhSU7SLGxnitbSiX0R*UBA563v93Pd3OpTRiU/PPUpKCiI-.customers_2020.xlsx.ycgjslfptkev.com to 192.168.255.254"}',
-'{"time":"Jan 15 00:51:08","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"reply 3x6-.57-.aSXmHVvNtPlI6nn7sMgzIBxUqwKaz4Fw34iaUUB91wYosNXhQw/3hqP3lEhJ-.FdC1BOmcTp10hjUtERubfqSWkqWmbX03zRTNciAh*pn4kHmf8NjdkJW19Vzg-.G08nsV1ABGmhIYjhSU7SLGxnitbSiX0R*UBA563v93Pd3OpTRiU/PPUpKCiI-.customers_2020.xlsx.ycgjslfptkev.com is 195.128.194.168"}',
-'{"time":"Jan 15 00:51:09","owner":"client01","log_format":"dnsmasq","ident":"dnsmasq","pid":"14522","message":"query[A] motd.ubuntu.com from 10.35.35.118"}'
+'{"time":"Jan 21 00:01:44","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"query[A] 3x6-.602-.OgEWPzRasaBfzw*1YgPwvfpK5ndYxfeL6t-.AAWCJrJfzqWHDvNtdSStYg3cnHaa0NHOxM-.26JBAO6h3xFvABN5REohh3RObsbew4lIQs-.XDxHdPvCAsmEqutMHFanKav*p1u36CvjZ4-.customers_2017.xlsx.email-19.kennedy-mendoza.info from 10.143.0.103"}',
+'{"time":"Jan 21 00:01:44","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"forwarded 3x6-.602-.OgEWPzRasaBfzw*1YgPwvfpK5ndYxfeL6t-.AAWCJrJfzqWHDvNtdSStYg3cnHaa0NHOxM-.26JBAO6h3xFvABN5REohh3RObsbew4lIQs-.XDxHdPvCAsmEqutMHFanKav*p1u36CvjZ4-.customers_2017.xlsx.email-19.kennedy-mendoza.info to 192.168.231.254"}',
+'{"time":"Jan 21 00:01:44","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"reply 3x6-.602-.OgEWPzRasaBfzw*1YgPwvfpK5ndYxfeL6t-.AAWCJrJfzqWHDvNtdSStYg3cnHaa0NHOxM-.26JBAO6h3xFvABN5REohh3RObsbew4lIQs-.XDxHdPvCAsmEqutMHFanKav*p1u36CvjZ4-.customers_2017.xlsx.email-19.kennedy-mendoza.info is 195.128.194.168"}',
+'{"time":"Jan 21 00:02:03","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"query[A] 3x6-.603-.JAiihufiH6QIEbwkSuO95WxdELeD1lhhZM-.d9flhBVmZjVw*hHY4zQbeBvDhO7Rkx310e-.qpg3bNc2PfFMkhRJ5fHiwXm/77ZJqwhnpT-.wB1zoS/YSaMDXtmgJxN1OFHSuQqg51iWtQ-.customers_2017.xlsx.email-19.kennedy-mendoza.info from 10.143.0.103"}',
+'{"time":"Jan 21 00:02:03","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"forwarded 3x6-.603-.JAiihufiH6QIEbwkSuO95WxdELeD1lhhZM-.d9flhBVmZjVw*hHY4zQbeBvDhO7Rkx310e-.qpg3bNc2PfFMkhRJ5fHiwXm/77ZJqwhnpT-.wB1zoS/YSaMDXtmgJxN1OFHSuQqg51iWtQ-.customers_2017.xlsx.email-19.kennedy-mendoza.info to 192.168.231.254"}',
+'{"time":"Jan 21 00:02:03","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"reply 3x6-.603-.JAiihufiH6QIEbwkSuO95WxdELeD1lhhZM-.d9flhBVmZjVw*hHY4zQbeBvDhO7Rkx310e-.qpg3bNc2PfFMkhRJ5fHiwXm/77ZJqwhnpT-.wB1zoS/YSaMDXtmgJxN1OFHSuQqg51iWtQ-.customers_2017.xlsx.email-19.kennedy-mendoza.info is 195.128.194.168"}',
+'{"time":"Jan 21 00:02:18","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"query[A] 3x6-.604-.MjQIsKRLJeIf3y1wM8tvXuGtFrV3H9WyLp-.FM74lLN5B5lFdxKv/oKEQF1IcKHe4qnp15-.myRWf8hQktgRZYoYMN84ec*T7Tx4Cu0F*5-.Atajwu7v2GXv2WXGRPV6jPKi6tEHcp72sD-.customers_2017.xlsx.email-19.kennedy-mendoza.info from 10.143.0.103"}',
+'{"time":"Jan 21 00:02:18","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"forwarded 3x6-.604-.MjQIsKRLJeIf3y1wM8tvXuGtFrV3H9WyLp-.FM74lLN5B5lFdxKv/oKEQF1IcKHe4qnp15-.myRWf8hQktgRZYoYMN84ec*T7Tx4Cu0F*5-.Atajwu7v2GXv2WXGRPV6jPKi6tEHcp72sD-.customers_2017.xlsx.email-19.kennedy-mendoza.info to 192.168.231.254"}',
+'{"time":"Jan 21 00:02:18","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"reply 3x6-.604-.MjQIsKRLJeIf3y1wM8tvXuGtFrV3H9WyLp-.FM74lLN5B5lFdxKv/oKEQF1IcKHe4qnp15-.myRWf8hQktgRZYoYMN84ec*T7Tx4Cu0F*5-.Atajwu7v2GXv2WXGRPV6jPKi6tEHcp72sD-.customers_2017.xlsx.email-19.kennedy-mendoza.info is 195.128.194.168"}',
+'{"time":"Jan 21 00:02:27","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"query[TXT] current.cvd.clamav.net from 172.19.130.4"}',
+'{"time":"Jan 21 00:02:27","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"forwarded current.cvd.clamav.net to 192.168.231.254"}',
+'{"time":"Jan 21 00:02:27","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"reply current.cvd.clamav.net is 0.103.5:62:26428:1642717740:1:90:49192:333"}',
+'{"time":"Jan 21 00:02:27","ident":"dnsmasq","owner":"client01","log_format":"dnsmasq","pid":"3468","message":"query[A] db.local.clamav.net from 172.19.130.4"}'
 ]
 
 
