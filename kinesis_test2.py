@@ -5,7 +5,7 @@ from pyspark.sql.functions import col,regexp_extract,concat,lit,array,unix_times
 from pyspark.sql import Row
 from pyspark.sql import SparkSession
 import json 
-from pyspark.ml.feature import StringIndexer,StringIndexerModel
+from pyspark.ml.feature import StringIndexer,StringIndexerModel,VectorAssembler
 from pyspark.conf import SparkConf
 from rule_base.rules import Apache_error,Dnsmasq
 import numpy as np
@@ -15,7 +15,9 @@ import time
 from pyspark.sql.functions import from_unixtime, col, unix_timestamp, expr,lag,round,dayofweek,length,regexp_replace,count, desc,udf
 from pyspark.sql.window import Window
 from pyspark.sql.types import IntegerType,FloatType
-import joblib
+import math
+from pyspark.ml.classification import RandomForestClassificationModel
+
 
 ###############################require configuration for aws 
 conf = (
@@ -96,13 +98,28 @@ def categorize_ip(value2):
         # Split IP address into octets
         octets = list(map(int, value2.split('.')))
 
-        # Check if IP is private
+        # Check if IPv4 is private
         if (octets[0] == 10) or (octets[0] == 172 and 16 <= octets[1] <= 31) or (octets[0] == 192 and octets[1] == 168):
-            return 0  # Private IP
+            return 0  # IPv4 private
         else:
-            return 1  # Public IP
+            return 1  # IPv4 public
     except:
-        return 2  # Non-IP values
+        try:
+            # Split IP address into parts
+            parts = value2.split(':')
+
+            # Check if IPv6 is private
+            if parts[0] == 'fd':
+                return 2  # IPv6 private
+            else:
+                # Check if parts[1] has a value or an empty string
+                if parts[2] or parts[2] == '':
+                    return 3  # IPv6 public
+                else:
+                    return 4  # Non-IP values
+        except:
+            return 4  # Non-IP values
+
     
 def count_dots(s):
     return s.count('.')
@@ -129,19 +146,25 @@ def has_microsoft_extension(value):
                             '7z', 'rar', 'tar', 'tar.gz', 'zip',
                             'bak', 'cfg', 'conf', 'ini', 'msi', 'sys', 'tmp',
                             'app', 'bat', 'bin', 'cmd', 'com', 'exe', 'vbs', 'x86']
-    return 1 if any(ext in value.lower() for ext in microsoft_extensions) else 0
+    words = value.split('.')
+    for word in words:
+        if word.lower() in microsoft_extensions:
+            return 1
+    return 0
+
 
 def calculate_entropy(value):
-    
     counts = {}
+    total_count = 0
     for c in value:
         counts[c] = counts.get(c, 0) + 1
-    probabilities = [count / len(value) for count in counts.values()]
-    entropy_value = sum(-p * np.log2(p) for p in probabilities)
+        total_count += 1
+    probabilities = [count / total_count for count in counts.values()]
+    entropy_value = sum(-p * math.log2(p) for p in probabilities)
     return entropy_value
-def is_human_readable(entropy_value, threshold=3.0):
-    return 1 if entropy_value < threshold else 0
 
+def is_human_readable(entropy_value, threshold=5.0):
+    return 1 if entropy_value < threshold else 0
 
 
 def process_dnsmasq_for_pred(df_pyspark):
@@ -204,7 +227,7 @@ def process_dnsmasq_for_pred(df_pyspark):
     
     # Apply the UDF to create a new column 'ip_category'
     df_pyspark = df_pyspark.withColumn("value2_ip_class", categorize_ip_udf("value2"))
-    df_pyspark = df_pyspark.selectExpr(
+    list_of_columns = [
         "response",
         "value1",
         "value2",
@@ -225,8 +248,13 @@ def process_dnsmasq_for_pred(df_pyspark):
         'value2_asterisk_count',
         'value2_capital_count',
         'value2_has_file_extensions',
-        'value2_ip_class'
-    )
+        'value2_ip_class',
+       
+    ]
+# Assuming df is your DataFrame
+# df_label = df_pyspark.select(['label'])
+    df_pyspark = df_pyspark.select(*list_of_columns)
+
     
     return df_pyspark
 
@@ -295,7 +323,7 @@ def process_rdd(rdd):
                     print("Phase 2 - Completed")
                     df_pyspark = df_temp.alias("df_pyspark")
                
-                    df_pyspark = process_dnsmasq_for_pred(df_pyspark) 
+                   
 
                     df_pyspark.show()
                     end_time_dns = time.time()
@@ -330,8 +358,9 @@ def process_rdd(rdd):
 
                     # send to anomaly module
                     print("***** phase 4 dnsmasq  anomaly detection ******")
-                     
+                    
                     start_time_dns = time.time()
+                    df_pyspark = process_dnsmasq_for_pred(df_pyspark) 
                     list_of_columns = [
                         'encoded_key',
                         'key_length',
@@ -352,7 +381,10 @@ def process_rdd(rdd):
                         'value2_has_file_extensions',
                         'value2_ip_class'
                     ]
-                    df_pyspark = df_pyspark.withColumn("prediction", predict_data(*list_of_columns))
+                    vector_assembler=VectorAssembler(inputCols=list_of_columns, outputCol="features")
+                    df_pyspark=vector_assembler.transform(df_pyspark)
+                    df_pyspark=loaded_rf_model.transform(df_pyspark)
+                    # df_pyspark = df_pyspark.withColumn("prediction", predict_data(*list_of_columns))
                     df_pyspark.show()
                     print("Phase 4 - Prediction Ended")
 
@@ -481,15 +513,15 @@ dstream = ssc.queueStream([data])
 # kinesisStream.pprint()
 
 # Path of Master
-log_model = joblib.load('/home/ec2-user/siem/model/ML_trained_model/RandomForestClassifier30.joblib')
+loaded_rf_model = RandomForestClassificationModel.load("s3://siemtest22/siem_spark_model/model/ML_trained_model/rf_model_new")
 # log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas2\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
 
-log_model.feature_names = None
+# log_model.feature_names = None
 
-broadcast_model = sc.broadcast(log_model)
-@udf('integer')
-def predict_data(*cols):
-    return int(broadcast_model.value.predict((cols,)))
+# broadcast_model = sc.broadcast(log_model)
+# @udf('integer')
+# def predict_data(*cols):
+    # return int(broadcast_model.value.predict((cols,)))
 
 dstream.foreachRDD(process_rdd)
 ###################################################################
