@@ -41,8 +41,8 @@ kinesisRegionName = "us-east-1"
 # indexer_error = StringIndexerModel.read().load("s3a://siemtest22/model/indexer.model")
 #######################################################################
 ###################################################local indexer###############
-indexer_dnsmasq = StringIndexerModel.read().load("./model/indexer_dnsmasq")
-indexer_error = StringIndexerModel.read().load("./model/indexer_apacheerror")
+indexer_dnsmasq = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_dnsmasq")
+indexer_error = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_apacheerror")
 ################################################################################
 
 ################regex for building key-value ######################################################################
@@ -384,7 +384,7 @@ def process_rdd(rdd):
                             # print(e)
                             pass
                         if not filtered_df.rdd.isEmpty():
-                            filtered_df.write.csv("./rule_base/{unique_value}/malicious_ip.csv".format(unique_value=owner),mode="append")
+                            filtered_df.write.parquet("s3://siemtest22/siem_spark_model/siem dev2/rule_base/{unique_value}/malicious_ip.parquet".format(unique_value=owner),mode="append")
                             print('\nPhase 5 - Rule generated ')
                         else:
                             filtered_df.show()
@@ -469,7 +469,7 @@ def read_txt_to_list(file_path):
     return lines_list
 
 # Example usage:
-file_path = 'dnsmasq_sample_chop.txt'  # Replace 'example.txt' with the path to your text file
+file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample_chop.txt'  # Replace 'example.txt' with the path to your text file
 data = read_txt_to_list(file_path)
 
 
@@ -481,7 +481,7 @@ dstream = ssc.queueStream([rdd])
 # kinesisStream.pprint()
 
 # Path of Master
-log_model = joblib.load('C:\\Users\\A570ZD\\Desktop\\siem dev2\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
+log_model = joblib.load('s3://siemtest22/siem_spark_model/siem dev2/model/ML_trained_model/RandomForestClassifier30.joblib')
 # log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas2\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
 
 log_model.feature_names = None
