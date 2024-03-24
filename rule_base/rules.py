@@ -59,7 +59,7 @@ class Dnsmasq:
             exist=False
         self.exist=exist
         if self.exist:
-            setrule_df = spark.read.csv(client_path)
+            setrule_df = spark.read.parquet(client_path)
             setrule_list = setrule_df.rdd.flatMap(lambda x: x).collect()
             self.df = df
             self.rule_file={}
