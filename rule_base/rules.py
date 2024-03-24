@@ -52,11 +52,11 @@ class Dnsmasq:
     def __init__(self,unique_value,df):
         spark=SparkSession.builder.getOrCreate()
         client_path="s3://siemtest22/siem_spark_model/siem dev2/rule_base/{unique_value}/malicious_ip.parquet".format(unique_value=unique_value)
-        df_check = spark.read.text(client_path)
-        if df_check.isEmpty():
-            exist=False
-        else:
+        try:
+            df_check = spark.read.text(client_path)
             exist=True
+        except:
+            exist=False
         self.exist=exist
         if self.exist:
             setrule_df = spark.read.csv(client_path)
