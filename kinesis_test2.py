@@ -470,13 +470,13 @@ def read_txt_to_list(file_path):
 
 # Example usage:
 file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample_chop.txt'  # Replace 'example.txt' with the path to your text file
-data = read_txt_to_list(file_path)
+data = sc.textFile(file_path)
 
 
 
 ################################################ uncomment for testing 
-rdd = spark.sparkContext.parallelize(data)
-dstream = ssc.queueStream([rdd])
+# rdd = spark.sparkContext.parallelize(data)
+dstream = ssc.queueStream([data])
 
 # kinesisStream.pprint()
 

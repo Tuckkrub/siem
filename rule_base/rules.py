@@ -10,7 +10,6 @@ from pyspark.sql import SparkSession
 # from pyspark.conf import SparkConf
 # import rule_base.rules as rb
 import xml.etree.ElementTree as ET
-import boto3
 from os import path
 
 
@@ -52,13 +51,12 @@ class Dnsmasq:
     # init method or constructor
     def __init__(self,unique_value,df):
         spark=SparkSession.builder.getOrCreate()
-        s3_client = boto3.client('s3')
         client_path="s3://siemtest22/siem_spark_model/siem dev2/rule_base/{unique_value}/malicious_ip.parquet".format(unique_value=unique_value)
-        try:
-            s3_client.head_object(Bucket='bucket_name', Key=client_path)
-            exist = True
-        except:
-            exist = False
+        df_check = spark.read.text(client_path)
+        if df_check.isEmpty():
+            exist=False
+        else:
+            exist=True
         self.exist=exist
         if self.exist:
             setrule_df = spark.read.csv(client_path)
