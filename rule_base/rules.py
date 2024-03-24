@@ -78,8 +78,6 @@ class Dnsmasq:
             detections.append(when(condition, rule))
 
         df = df.withColumn("detection", concat_ws(",", *detections))
-        # df = df.withColumn("detection", when(col(self.df.columns.value1), "related to malicious IP").otherwise("detection"))
-        # df_for_anomaly = df.filter(df['detection'] == "")
         df=df.withColumn("get_malicious_domain", when(col("detection") != "", col("value1")).otherwise(None))
         distinct_values = df.select('get_malicious_domain').distinct().rdd.flatMap(lambda x: x).collect()
         # print(distinct_values)
@@ -90,7 +88,7 @@ class Dnsmasq:
         df_for_anomaly = df.withColumn("row_num", row_number().over(window_spec))
         # df_for_anomaly.show()
         df_for_anomaly_filtered = df_for_anomaly.filter(~((df_for_anomaly["row_num"] > 3) & (df_for_anomaly["temp_for_check_association"] != None)))
-        df_for_anomaly_filtered = df_for_anomaly.filter((df_for_anomaly["temp_for_check_association"].isNull()))
+        df_for_anomaly_filtered = df_for_anomaly_filtered.filter((df_for_anomaly["temp_for_check_association"].isNull()))
         df_for_anomaly_filtered = df_for_anomaly_filtered.drop("row_num","temp_for_check_association","get_malicious_domain")
         df_for_anomaly_filtered = df_for_anomaly_filtered.filter((df_for_anomaly["detection"] == ""))
         # df=df.withColumn("srcip",regexp_extract('client',ip_regex,1)) \
