@@ -419,10 +419,8 @@ def process_rdd(rdd):
                             filtered_df.write.parquet("s3://siemtest22/siem_spark_model/siem dev2/rule_base/{unique_value}/malicious_ip.parquet".format(unique_value=owner),mode="append")
                             print('\nPhase 5 - Rule generated ')
                         else:
-                            filtered_df.show()
                             print('\nPhase 5 - NO rule generated ')
                     else:
-                        df_pyspark.show()
                         print("\nPhase 5 - NO rule generated")
 
                     end_time_rule = time.time()
@@ -501,7 +499,7 @@ def read_txt_to_list(file_path):
     return lines_list
 
 # Example usage:
-file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample_chop.txt'  # Replace 'example.txt' with the path to your text file
+file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
 data = sc.textFile(file_path)
 
 
