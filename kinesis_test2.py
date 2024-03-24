@@ -481,7 +481,7 @@ dstream = ssc.queueStream([data])
 # kinesisStream.pprint()
 
 # Path of Master
-log_model = joblib.load('s3://siemtest22/siem_spark_model/siem dev2/model/ML_trained_model/RandomForestClassifier30.joblib')
+log_model = joblib.load('/home/ec2-user/siem/model/ML_trained_model/RandomForestClassifier30.joblib')
 # log_model = joblib.load('C:\\Users\\Prompt\\Desktop\\mas2\\siem\\model\\ML_trained_model\\RandomForestClassifier30.joblib')
 
 log_model.feature_names = None
