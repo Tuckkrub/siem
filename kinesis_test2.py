@@ -8,7 +8,7 @@ import json
 from pyspark.ml.feature import StringIndexer,StringIndexerModel
 from pyspark.conf import SparkConf
 from rule_base.rules import Apache_error,Dnsmasq
-
+import numpy as np
 import time
 
 ### For Phase 4 ###
@@ -132,7 +132,7 @@ def has_microsoft_extension(value):
     return 1 if any(ext in value.lower() for ext in microsoft_extensions) else 0
 
 def calculate_entropy(value):
-    import numpy as np
+    
     counts = {}
     for c in value:
         counts[c] = counts.get(c, 0) + 1

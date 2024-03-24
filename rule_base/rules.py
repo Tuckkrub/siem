@@ -10,6 +10,7 @@ from pyspark.sql import SparkSession
 # from pyspark.conf import SparkConf
 # import rule_base.rules as rb
 import xml.etree.ElementTree as ET
+import boto3
 from os import path
 
 
@@ -17,7 +18,7 @@ class Apache_error:
  
     # init method or constructor
     def __init__(self, df):
-        tree = ET.parse('C:\\Users\\A570ZD\\Desktop\\siem dev\\xml_parser\\0250-apache_rules.xml')
+        tree = ET.parse('s3://siemtest22/siem_spark_model/siem dev2/xml_parser/0250-apache_rules.xml')
         root = tree.getroot()
 
         self.df = df
@@ -51,8 +52,14 @@ class Dnsmasq:
     # init method or constructor
     def __init__(self,unique_value,df):
         spark=SparkSession.builder.getOrCreate()
-        client_path="./rule_base/{unique_value}/malicious_ip.csv".format(unique_value=unique_value)
-        self.exist=path.exists(client_path)
+        s3_client = boto3.client('s3')
+        client_path="s3://siemtest22/siem_spark_model/siem dev2/rule_base/{unique_value}/malicious_ip.parquet".format(unique_value=unique_value)
+        try:
+            s3_client.head_object(Bucket='bucket_name', Key=client_path)
+            exist = True
+        except:
+            exist = False
+        self.exist=exist
         if self.exist:
             setrule_df = spark.read.csv(client_path)
             setrule_list = setrule_df.rdd.flatMap(lambda x: x).collect()
@@ -77,13 +84,13 @@ class Dnsmasq:
         # df_for_anomaly = df.filter(df['detection'] == "")
         df=df.withColumn("get_malicious_domain", when(col("detection") != "", col("value1")).otherwise(None))
         distinct_values = df.select('get_malicious_domain').distinct().rdd.flatMap(lambda x: x).collect()
-        print(distinct_values)
+        # print(distinct_values)
         df = df.withColumn('temp_for_check_association', when(col('value1').isin(distinct_values), col('value1')))
         # df=df.withColumn("associate_with_malicious_IP_query", when(col("value1") != "", col("value1")))
-        df.show()
+        # df.show()
         window_spec = Window.partitionBy("value1").orderBy("value1")
         df_for_anomaly = df.withColumn("row_num", row_number().over(window_spec))
-        df_for_anomaly.show()
+        # df_for_anomaly.show()
         df_for_anomaly_filtered = df_for_anomaly.filter(~((df_for_anomaly["row_num"] > 3) & (df_for_anomaly["temp_for_check_association"] != None)))
         df_for_anomaly_filtered = df_for_anomaly.filter((df_for_anomaly["temp_for_check_association"].isNull()))
         df_for_anomaly_filtered = df_for_anomaly_filtered.drop("row_num","temp_for_check_association","get_malicious_domain")

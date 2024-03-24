@@ -331,7 +331,8 @@ def process_rdd(rdd):
                     if df_dnsmasq_rule.exist:
                         df_check,for_anomaly_df=df_dnsmasq_rule.error_check()
                         if not df_check.rdd.isEmpty():
-                            df_check.show()
+                            # df_check.show()
+                            pass
                         else:
                             print("XXXX nothing XXXX")
                     else:
@@ -339,7 +340,7 @@ def process_rdd(rdd):
                         print("XXXX nothing XXXX")
 
                     # for_anomaly_df = for_anomaly_df.filter(for_anomaly_df['detection'] == "")
-                    for_anomaly_df.show()
+                    # for_anomaly_df.show()
                     end_time_dns = time.time()
 
                     elapsed_time = end_time_dns - start_time_dns
@@ -351,14 +352,19 @@ def process_rdd(rdd):
                     start_time_dns = time.time()
                     df_temp = process_dnsmasq_for_pred(for_anomaly_df)  
                     list_of_columns = df_temp.columns
+
+                    
                     df_temp = df_temp.withColumn("prediction", predict_data(*list_of_columns))
-                    df_temp.show()
+                    # df_temp.show()
 
                     end_time_dns = time.time()
 
                     elapsed_time = end_time_dns - start_time_dns
                     print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time, "seconds\n")
+                    
+                    
                     print("*****phase 5 create rule********")
+                    start_time_dns = time.time()
                     prediction_column=df_temp.select("prediction")
 
                     w = Window().orderBy(lit('A'))
@@ -372,13 +378,19 @@ def process_rdd(rdd):
                     anomalies_df=for_anomaly_df[for_anomaly_df['prediction']==1].drop('prediction')
                     if not for_anomaly_df.rdd.isEmpty():
                         filtered_df = anomalies_df.filter((anomalies_df["response"].like("%query%"))).select("value2").distinct()
-                        filtered_df.show()
+                        filtered_df.show(truncate=False)
                         if not filtered_df.rdd.isEmpty():
                             filtered_df.write.csv("./rule_base/{unique_value}/malicious_ip.csv".format(unique_value=owner),mode="append")
                         else:
                             print('No rule generated ')
                     else:
                         print("No rule generated")
+
+                    end_time_dns = time.time()
+
+                    elapsed_time = end_time_dns - start_time_dns
+                    print(f"Rule creation time <dnsmasq_phase_5_{owner}>:", elapsed_time, "seconds\n")
+                    
 
                     ########################
                     print("************ END ***********************************")
@@ -407,7 +419,15 @@ def process_rdd(rdd):
                     
         end_time_process = time.time()
         elapsed_time_process = end_time_process - start_time_process
-        print("Overall elapsed time <kinesis_test.py>:", elapsed_time_process, "seconds\n")                
+        print("Summary - time taken:")
+        print("Overall elapsed time <kinesis_test.py>:", elapsed_time_process, "seconds\n")
+        print("Pre-processed time <dnsmasq_phase_1>:", elapsed_time, "seconds\n")
+        print(f"Pre-processed time <dnsmasq_phase_2_{owner}>:", elapsed_time, "seconds\n")
+        print(f"Rule-based detetcion time <dnsmasq_phase_3_{owner}>:", elapsed_time, "seconds\n")
+        print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time, "seconds\n")
+        print(f"Rule creation time <dnsmasq_phase_5_{owner}>:", elapsed_time, "seconds\n")
+       
+
 
 
 
