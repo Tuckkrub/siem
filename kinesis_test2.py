@@ -333,14 +333,15 @@ def process_rdd(rdd):
                     
                     print("***** phase 3 dnsmasq  rule-base detection ******")
                     start_time_dns = time.time()
-
+                    df_pyspark=df_pyspark.persist()
                     ##### code for rule based prediction
                     df_dnsmasq_rule=Dnsmasq(df=df_pyspark,unique_value=owner)
                     if df_dnsmasq_rule.exist:
                         df_check,df_pyspark=df_dnsmasq_rule.error_check()
+                        df_pyspark = df_pyspark.persist()
                         if not df_check.rdd.isEmpty():
                             # df_check.show()
-                            df_pyspark.show()
+                            # df_pyspark.show()
                             print("Phase 3 - Rules activated")
                             
                         else:
@@ -422,7 +423,7 @@ def process_rdd(rdd):
                             print('\nPhase 5 - NO rule generated ')
                     else:
                         print("\nPhase 5 - NO rule generated")
-
+                    df_pyspark=df_pyspark.unpersist()
                     end_time_rule = time.time()
 
                     elapsed_time5 = end_time_rule - start_time_rule
@@ -500,6 +501,7 @@ def read_txt_to_list(file_path):
 
 # Example usage:
 file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
+
 data = sc.textFile(file_path)
 
 
