@@ -324,9 +324,10 @@ def process_apacheaccess_for_pred(df_pyspark):
 
     # Join grouped DataFrame with original data DataFrame
     df_result = df_pyspark.join(df_grouped, ['host', 'timestamp_second'], 'left_outer')
+    
 
     # Sort the resulting DataFrame based on IDs
-    df_pyspark = df_result.sort("id")
+    # df_pyspark = df_result.sort("id")
 
 
 
@@ -481,7 +482,9 @@ def process_rdd(rdd):
                     print(f"Pre-processed time <apacheacess_phase_2_{owner}>:", elapsed_time2, "seconds\n")
                     
                     print("***** phase 3 apache access  anomaly detection ******")
+                
                     df_pyspark = df_pyspark.withColumn('time', unix_timestamp('time', "dd/MMM/yyyy:HH:mm:ss Z"))
+                    df_pyspark=df_pyspark[~(df_pyspark['agent'].isNull())]
 
                     df_pyspark=process_apacheaccess_for_pred(df_pyspark)
                     start_time_access = time.time()
