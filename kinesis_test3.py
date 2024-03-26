@@ -385,9 +385,9 @@ def process_rdd(rdd):
 
             #############LET's seperate by log owner#################################
             
-            
+            print("***** phase 2 dnsmasq owner seperation & furthur pre-processing ******")
             for row in unique_owners.collect():
-                    print("***** phase 2 dnsmasq owner seperation & furthur pre-processing ******")
+                    
                     start_time_dns = time.time()
 
                     # since only 1 column is collected , so it's always at row[0]
@@ -437,13 +437,9 @@ def process_rdd(rdd):
                     # df_pyspark = df_pyspark.withColumn("prediction", predict_data(*list_of_columns))
                     df_pyspark.show()
                     print("Phase 3 - Prediction Ended")
-
                     end_time_dns = time.time()
-
                     elapsed_time4 = end_time_dns - start_time_dns
                     print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time4, "seconds\n")
-
-
                     ########################
                     print("*********************************** END ***********************************\n")
                     print("Pre-processed time <dnsmasq_phase_1>:", elapsed_time1, "seconds\n")
@@ -457,19 +453,35 @@ def process_rdd(rdd):
             # dataframes['dnsmasq'].write.mode('overwrite').parquet("C:\\Users\\A570ZD\\Desktop\\kinesis_stream\\temp\\dnsmasq") 
         if not apache2_access.isEmpty():
             print("***** phase 1 apache2 access log seperation ******")
+            start_time_access = time.time()
             dataframes['apache2_access']=process_apache2_access(apache2_access)
-            dataframes['apache2_access'].show()
             unique_owners=dataframes['apache2_access'].select('owner').distinct()
+            unique_owners.show()
+            end_time_access = time.time()
+
+            elapsed_time1 = end_time_access - start_time_access
+            print("log seperation time <apacheaccess_phase_1>:", elapsed_time1, "seconds\n")
+
+            
             #############LET's seperate by log owner#################################
+            
             print("***** phase 2 apache2 access owner seperation ******")
             for row in unique_owners.collect():
+                    start_time_access = time.time()
                     
                     # since only 1 column is collected , so it's always at row[0]
-                    unique_value = row[0]
-                    df_temp = dataframes['apache2_access'].filter(dataframes['apache2_access']['owner'] == unique_value)
-                    df_temp.show()
-                    print("***** phase 3 apache error  anomaly detection ******")
+                    owner = row[0]
+                    df_temp = dataframes['apache2_access'].filter(dataframes['apache2_access']['owner'] == owner)
+                    df_pyspark = df_temp.alias("df_pyspark")
+
+                    df_pyspark.show()
+                    end_time_access = time.time()
+                    elapsed_time2 = end_time_access - start_time_access
+                    print(f"Pre-processed time <apacheacess_phase_2_{owner}>:", elapsed_time2, "seconds\n")
+                    
+                    print("***** phase 3 apache access  anomaly detection ******")
                     df_pyspark=process_apacheaccess_for_pred(df_temp)
+                    start_time_access = time.time()
                     list_of_columns = [
                         'check_agent',
                         'code_ext',
@@ -484,8 +496,15 @@ def process_rdd(rdd):
                     df_pyspark=vector_assembler.transform(df_pyspark)
                     df_pyspark=loaded_rf_model_access.transform(df_pyspark)
                     df_pyspark.show()
+                    end_time_access = time.time()
+                    elapsed_time4 = end_time_access - start_time_access
+                    print(f"Anomaly detection time <apache_access_phase_3_{owner}>:", elapsed_time4, "seconds\n")
 
                     ##################
+                    print("*********************************** END ***********************************\n")
+                    print("Pre-processed time <apache_access_phase_1>:", elapsed_time1, "seconds\n")
+                    print(f"Pre-processed time <apache_access_phase_2_{owner}>:", elapsed_time2, "seconds\n")
+                    print(f"Anomaly detection time <apache_access_phase_3_{owner}>:", elapsed_time4, "seconds\n")
                     
         end_time_process = time.time()
         elapsed_time_process = end_time_process - start_time_process
