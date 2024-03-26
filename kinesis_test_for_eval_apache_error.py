@@ -440,11 +440,12 @@ def process_rdd(rdd):
                     start_time_error = time.time()
                     unique_value = row[0]
                     df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
+                    df_pyspark = df_temp.alias("df_pyspark")
                     # df_temp.show()
                     # send to anomaly module
-                    end_time_dns = time.time()
+                    end_time_error = time.time()
 
-                    elapsed_time2 = end_time_dns - start_time_dns
+                    elapsed_time2 = end_time_error - start_time_error
                     print("log seperation time <apache_error_phase_2>:", elapsed_time2, "seconds\n")
                     print("***** phase 3 apache error  anomaly detection ******")
                     start_time_error = time.time()
@@ -671,7 +672,7 @@ data={}
 # s3://siemtest22/siem_spark_model/eval_data/apache2_access_normalized_client13_500.txt/
 # s3://siemtest22/siem_spark_model/eval_data/apache2_error_normalized_client13_500.txt/
 base=[500,644]
-for i in range():
+for i in range(2):
     data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data/apache2_error_normalized_client13_{num}.txt'.format(num=base[i]))
 
 data_list=[data[x] for x in range(2)]
