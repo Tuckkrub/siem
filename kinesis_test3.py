@@ -550,7 +550,7 @@ def read_txt_to_list(file_path):
 
 # Example usage:
 # file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
-file_path2="s3://siemtest22/siem_spark_model/siem dev2/client02_access.csv"
+file_path2="s3://siemtest22/siem_spark_model/siem dev2/apache_access.txt"
 data = sc.textFile(file_path2)
 
 
