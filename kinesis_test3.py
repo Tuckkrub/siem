@@ -545,6 +545,7 @@ def process_rdd(rdd):
                     df_pyspark=loaded_rf_model_dnsmasq.transform(df_pyspark)
                     # df_pyspark = df_pyspark.withColumn("prediction", predict_data(*list_of_columns))
                     df_pyspark.show()
+                    df_pyspark.agg(count(when(col('prediction')==1,1)),count(when(col('prediction')==0,0))).show()
                     print("Phase 3 - Prediction Ended")
                     end_time_dns = time.time()
                     elapsed_time4 = end_time_dns - start_time_dns
@@ -660,16 +661,18 @@ def read_txt_to_list(file_path):
     return lines_list
 
 # Example usage:
-# file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
+file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
 file_path2="s3://siemtest22/siem_spark_model/siem dev2/apache_access.txt"
 data = sc.textFile(file_path2)
+data2=sc.textFile(file_path)
+
 
 
 
 
 ################################################ uncomment for testing 
 # rdd = spark.sparkContext.parallelize(data)
-dstream = ssc.queueStream([data])
+dstream = ssc.queueStream([data,data2])
 
 # kinesisStream.pprint()
 
