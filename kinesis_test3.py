@@ -260,6 +260,7 @@ def process_dnsmasq_for_pred(df_pyspark):
 
 ######################################################for apache access #########################################
 # Define Function
+
 def check_agent(value):    
     if 'nmap' in value.lower() or 'wpscan' in value.lower() or 'python-requests' in value.lower():
         return 1
@@ -480,7 +481,9 @@ def process_rdd(rdd):
                     print(f"Pre-processed time <apacheacess_phase_2_{owner}>:", elapsed_time2, "seconds\n")
                     
                     print("***** phase 3 apache access  anomaly detection ******")
-                    df_pyspark=process_apacheaccess_for_pred(df_temp)
+                    df_pyspark = df_pyspark.withColumn('time', unix_timestamp('time', "dd/MMM/yyyy:HH:mm:ss Z"))
+
+                    df_pyspark=process_apacheaccess_for_pred(df_pyspark)
                     start_time_access = time.time()
                     list_of_columns = [
                         'check_agent',
@@ -546,9 +549,10 @@ def read_txt_to_list(file_path):
     return lines_list
 
 # Example usage:
-file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
+# file_path = 's3://siemtest22/siem_spark_model/siem dev2/dnsmasq_sample.txt'  # Replace 'example.txt' with the path to your text file
+file_path2="s3://siemtest22/siem_spark_model/siem dev2/client02_access.csv"
+data = sc.textFile(file_path2)
 
-data = sc.textFile(file_path)
 
 
 
