@@ -93,6 +93,9 @@ def process_apache2_access(filtered_rdd):
     df=spark.createDataFrame(filtered_rdd)
     return df
 
+
+###########################################for dnsmasq#########################################################
+
 def categorize_ip(value2):
     try:
         # Split IP address into octets
@@ -339,6 +342,74 @@ def process_apacheaccess_for_pred(df_pyspark):
     encode_method_udf = udf(encode_method, IntegerType())
     df_pyspark = df_pyspark.withColumn("encode_method", encode_method_udf("method"))
     return df_pyspark
+##########################################for apache error####################################################
+def key_isAH(value):
+    if value is not None and value.startswith('AH'): 
+        return 1
+    else:
+        return 0
+    
+# isInvalid
+def value_isInvalid(value):
+    return 1 if 'invalid' in value.lower() else 0
+
+def value_isforbidden(value):
+    return 1 if 'forbidden' in value.lower() else 0
+
+# isFail
+def value_isFail(value):
+    return 1 if 'fail' in value.lower() else 0
+
+# script && not found
+def key_script_not_found(value):
+    return 1 if ('script' in value.lower()) and ('not found' in value.lower()) else 0
+
+# time interval (action per sec)
+
+# isFatal
+def key_isFatal(value):
+    return 1 if 'fatal' in value.lower() else 0
+
+# isscandir
+def key_isscandir(value):
+    return 1 if 'scandir' in value.lower() else 0
+
+# level isError
+def level_isError(value):
+    characters = ['error', 'emerg', 'alert', 'crit']
+    if value is not None and any(char in value.lower() for char in characters):
+        return 1
+    else:
+        return 0
+
+def process_apache_error_for_pred(df_pyspark):
+    key_isAH_udf = udf(key_isAH, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isAH", key_isAH_udf("message"))
+
+    value_isInvalid_udf = udf(value_isInvalid, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isInvalid", value_isInvalid_udf("message"))
+
+    value_isforbidden_udf = udf(value_isforbidden, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isforbidden", value_isforbidden_udf("message"))
+
+    value_isFail_udf = udf(value_isFail, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isFail", value_isFail_udf("message"))
+
+    key_script_not_found_udf = udf(key_script_not_found, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_script_not_found", key_script_not_found_udf("message"))
+
+    key_isFatal_udf = udf(key_isFatal, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isFatal", key_isFatal_udf("message"))
+
+    key_isscandir_udf = udf(key_isscandir, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isscandir", key_isscandir_udf("message"))
+
+    level_isError_udf = udf(level_isError, IntegerType())
+    df_pyspark = df_pyspark.withColumn("level_isError", level_isError_udf("level"))
+
+    return df_pyspark
+    
+
 ###############################################################################################################
 def process_rdd(rdd):
     print("enter check")
@@ -353,19 +424,55 @@ def process_rdd(rdd):
 
         if not apache_error.isEmpty():
             print("***** phase 1 apache error log seperation ******")
+            start_time_error = time.time()
+            
             dataframes['apache_error'] = process_apache_error(apache_error)
-            dataframes['apache_error'].show()
+            # dataframes['apache_error'].show()
+            end_time_error = time.time()
+            elapsed_time1 = end_time_error - start_time_error
+            print("log seperation time <Apache_error_phase_1>:", elapsed_time1, "seconds\n")
+
             unique_owners=dataframes['apache_error'].select('owner').distinct()
             #############LET's seperate by log owner#################################
             print("***** phase 2 apache error owner seperation ******")
             for row in unique_owners.collect():
-                    
                     # since only 1 column is collected , so it's always at row[0]
+                    start_time_error = time.time()
                     unique_value = row[0]
                     df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
                     df_temp.show()
                     # send to anomaly module
-                    print("***** phase 4 apache error  anomaly detection ******")
+                    end_time_dns = time.time()
+
+                    elapsed_time2 = end_time_dns - start_time_dns
+                    print("log seperation time <apache_error_phase_2>:", elapsed_time2, "seconds\n")
+                    print("***** phase 3 apache error  anomaly detection ******")
+                    start_time_error = time.time()
+                    df_pyspark=process_apache_error_for_pred(df_pyspark)
+                    list_of_columns = [
+                        'client',
+                        'key_isAH',
+                        'value_isInvalid',
+                        'value_isforbidden',
+                        'value_isFail',
+                        'key_script_not_found',
+                        'key_isFatal',
+                        'key_isscandir',
+                        'level_isError',
+                    ]
+                    vector_assembler=VectorAssembler(inputCols=list_of_columns, outputCol="features")
+                    df_pyspark=vector_assembler.transform(df_pyspark)
+                    df_pyspark=loaded_rf_model_error.transform(df_pyspark)
+                    df_pyspark.collect()
+                    end_time_error = time.time()
+                    elapsed_time3 = start_time_error - end_time_error
+                    print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time4, "seconds\n")
+                    ########################
+                    print("*********************************** END ***********************************\n")
+                    print("Pre-processed time <dnsmasq_phase_1>:", elapsed_time1, "seconds\n")
+                    print(f"Pre-processed time <dnsmasq_phase_2_{owner}>:", elapsed_time2, "seconds\n")
+                    print(f"Anomaly detection time <dnsmasq_phase_3_{owner}>:", elapsed_time3, "seconds\n")
+
 
                     ######################
 
@@ -402,7 +509,7 @@ def process_rdd(rdd):
                
                    
 
-                    df_pyspark.show()
+                    # df_pyspark.show()
                     end_time_dns = time.time()
 
                     elapsed_time2 = end_time_dns - start_time_dns
@@ -568,6 +675,7 @@ dstream = ssc.queueStream([data])
 # Path of Master
 loaded_rf_model_dnsmasq = RandomForestClassificationModel.load("s3://siemtest22/siem_spark_model/model/ML_trained_model/rf_model_new")
 loaded_rf_model_access= RandomForestClassificationModel.load('s3://siemtest22/siem_spark_model/model/ML_trained_model/rf_model_access')
+loaded_rf_model_error=RandomForestClassificationModel.load('s3://siemtest22/siem_spark_model/model/ML_trained_model/rf_model_error')
 
 dstream.foreachRDD(process_rdd)
 ###################################################################
