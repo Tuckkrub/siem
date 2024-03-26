@@ -145,17 +145,8 @@ def is_human_readable(entropy_value, threshold=3.0):
 
 
 def process_dnsmasq_for_pred(df_pyspark):
-    df_pyspark = df_pyspark.drop("ident", "log_format", "owner", "message")  # Remove unnecessary columns
     df_pyspark = df_pyspark.withColumn("encoded_key", col("encoded_key").cast("int"))
     df_pyspark = df_pyspark.withColumn("key_length", length("key"))
-
-    # df_pyspark = df_pyspark.withColumn("timestamp_datetime", from_unixtime("epoch_timestamp").cast("timestamp"))
-    # lag_col = lag(col("epoch_timestamp")).over(Window.orderBy("epoch_timestamp"))
-    # df_pyspark = df_pyspark.withColumn("time_diff_unix", round((col("epoch_timestamp") - lag_col), 1))
-    # df_pyspark = df_pyspark.fillna(0, subset=["time_diff_unix"])
-    # df_pyspark = df_pyspark.withColumn("time_diff_unix", col("time_diff_unix").cast("decimal(10,1)"))
-    # df_pyspark = df_pyspark.withColumn("day_of_week", dayofweek("timestamp_datetime"))
-    
     df_pyspark = df_pyspark.withColumn("value1_length", length("value1"))
     df_pyspark = df_pyspark.withColumn("value2_length", length("value2"))
 
@@ -163,7 +154,7 @@ def process_dnsmasq_for_pred(df_pyspark):
     count_hyphens_udf = udf(count_hyphens, IntegerType())
     count_slash_udf = udf(count_slash, IntegerType())
     count_asterisk_udf = udf(count_asterisk, IntegerType())
-    
+
     df_pyspark = df_pyspark.withColumn("value1_dot_count", count_dots_udf("value1"))
     df_pyspark = df_pyspark.withColumn("value1_hyphen_count", count_hyphens_udf("value1"))
     df_pyspark = df_pyspark.withColumn("value1_slash_count", count_slash_udf("value1"))
@@ -193,34 +184,11 @@ def process_dnsmasq_for_pred(df_pyspark):
     has_microsoft_extension_udf = udf(has_microsoft_extension, IntegerType())
     df_pyspark = df_pyspark.withColumn("value2_has_file_extensions", has_microsoft_extension_udf(col("value2")))
 
-    # window_spec_value1 = Window().orderBy("value1")
-    # window_spec_value2 = Window().orderBy("value2")
-    
-    # df_pyspark = df_pyspark.withColumn("value1_count", count("value1").over(window_spec_value1))
-    # df_pyspark = df_pyspark.withColumn("value2_count", count("value2").over(window_spec_value2))
-
     # Register the UDF
     categorize_ip_udf = udf(categorize_ip, IntegerType())
-    
+
     # Apply the UDF to create a new column 'ip_category'
     df_pyspark = df_pyspark.withColumn("value2_ip_class", categorize_ip_udf("value2"))
-
-    # df_pyspark = df_pyspark.drop("key", "value1", "value2", "epoch_timestamp","timestamp_datetime")
-    # df_pyspark = df_pyspark.selectExpr(
-    #     'encoded_key',
-    #     'time_diff_unix',
-    #     'day_of_week',
-    #     'value1_length',
-    #     'value2_length',
-    #     'value1_dot_count',
-    #     'value1_hyphen_count',
-    #     'value2_dot_count',
-    #     'value2_hyphen_count',
-    #     'key_length',
-    #     'value1_count',
-    #     'value2_count',
-    #     'value2_ip_class'  # Assuming this column needs to be added
-    # )
     df_pyspark = df_pyspark.selectExpr(
         'encoded_key',
         'key_length',
