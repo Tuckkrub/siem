@@ -326,7 +326,7 @@ def process_apacheaccess_for_pred(df_pyspark):
     df_grouped = df_pyspark.groupBy("host", "timestamp_second").count().withColumnRenamed("count", "entries_in_second")
 
     # Join grouped DataFrame with original data DataFrame
-    df_result = df_pyspark.join(df_grouped, ['host', 'timestamp_second'], 'left_outer')
+    df_pyspark = df_pyspark.join(df_grouped, ['host', 'timestamp_second'], 'left_outer')
     
 
     # Sort the resulting DataFrame based on IDs
