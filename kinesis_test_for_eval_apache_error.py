@@ -449,6 +449,7 @@ def process_rdd(rdd):
                     print("log seperation time <apache_error_phase_2>:", elapsed_time2, "seconds\n")
                     print("***** phase 3 apache error  anomaly detection ******")
                     start_time_error = time.time()
+                    df_pyspark = df_pyspark.withColumn('client', when(col('client').isNull(), 0).otherwise(1))
                     df_pyspark=process_apache_error_for_pred(df_pyspark)
                     list_of_columns = [
                         'client',
