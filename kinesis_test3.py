@@ -466,12 +466,12 @@ def process_rdd(rdd):
                     df_pyspark.collect()
                     end_time_error = time.time()
                     elapsed_time3 = start_time_error - end_time_error
-                    print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time4, "seconds\n")
+                    print(f"Anomaly detection time <apache_error_phase_3_{owner}>:", elapsed_time4, "seconds\n")
                     ########################
                     print("*********************************** END ***********************************\n")
-                    print("Pre-processed time <dnsmasq_phase_1>:", elapsed_time1, "seconds\n")
-                    print(f"Pre-processed time <dnsmasq_phase_2_{owner}>:", elapsed_time2, "seconds\n")
-                    print(f"Anomaly detection time <dnsmasq_phase_3_{owner}>:", elapsed_time3, "seconds\n")
+                    print("Pre-processed time <apache_error_phase_1>:", elapsed_time1, "seconds\n")
+                    print(f"Pre-processed time <apache_error_phase_2_{owner}>:", elapsed_time2, "seconds\n")
+                    print(f"Anomaly detection time <apche_error_phase_3_{owner}>:", elapsed_time3, "seconds\n")
 
 
                     ######################
@@ -610,6 +610,7 @@ def process_rdd(rdd):
                     df_pyspark=loaded_rf_model_access.transform(df_pyspark)
                     df_pyspark.show()
                     end_time_access = time.time()
+                    df_pyspark.agg(count(when(col('prediction')==1,1)),count(when(col('prediction')==0,0))).show()
                     elapsed_time4 = end_time_access - start_time_access
                     print(f"Anomaly detection time <apache_access_phase_3_{owner}>:", elapsed_time4, "seconds\n")
 
