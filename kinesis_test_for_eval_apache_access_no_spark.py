@@ -113,7 +113,7 @@ def process_rdd(path):
     df=pd.read_json(path,lines=True)
     print("enter check")
     start_time_process = time.time()
-    print("***** phase 1 dnsmasq log seperation ******")
+    print("***** phase 1 access log seperation ******")
     df=process_access(df)
             
     start_time_dns = time.time()
@@ -125,11 +125,11 @@ def process_rdd(path):
     end_time_dns = time.time()
 
     elapsed_time1 = end_time_dns - start_time_dns
-    print("log seperation time <dnsmasq_phase_1>:", elapsed_time1, "seconds\n")
+    print("log seperation time <access_phase_1>:", elapsed_time1, "seconds\n")
 
         #############LET's seperate by log owner#################################
             
-    print("***** phase 2 dnsmasq owner seperation & furthur pre-processing ******")
+    print("***** phase 2 access owner seperation & furthur pre-processing ******")
     for row in unique_owners:         
             start_time_dns = time.time()
 
@@ -146,10 +146,10 @@ def process_rdd(path):
             end_time_dns = time.time()
 
             elapsed_time2 = end_time_dns - start_time_dns
-            print(f"Pre-processed time <dnsmasq_phase_2_{owner}>:", elapsed_time2, "seconds\n")
+            print(f"Pre-processed time <access_phase_2_{owner}>:", elapsed_time2, "seconds\n")
 
                     # send to anomaly module
-            print("***** phase 3 dnsmasq  anomaly detection ******")
+            print("***** phase 3 access  anomaly detection ******")
             
             start_time_dns = time.time()
             df_pyspark = process_access_for_pred(df_pyspark) 
@@ -174,12 +174,12 @@ def process_rdd(path):
             print("Phase 3 - Prediction Ended")
             end_time_dns = time.time()
             elapsed_time4 = end_time_dns - start_time_dns
-            print(f"Anomaly detection time <dnsmasq_phase_4_{owner}>:", elapsed_time4, "seconds\n")
+            print(f"Anomaly detection time <access_phase_4_{owner}>:", elapsed_time4, "seconds\n")
                     ########################
             print("*********************************** END ***********************************\n")
-            print("Pre-processed time <dnsmasq_phase_1>:", elapsed_time1, "seconds\n")
-            print(f"Pre-processed time <dnsmasq_phase_2_{owner}>:", elapsed_time2, "seconds\n")
-            print(f"Anomaly detection time <dnsmasq_phase_3_{owner}>:", elapsed_time4, "seconds\n")
+            print("Pre-processed time <access_phase_1>:", elapsed_time1, "seconds\n")
+            print(f"Pre-processed time <access_phase_2_{owner}>:", elapsed_time2, "seconds\n")
+            print(f"Anomaly detection time <access_phase_3_{owner}>:", elapsed_time4, "seconds\n")
     end_time_process = time.time()
     process_time=end_time_process-start_time_process
     print(f"overall elapse time: {process_time}", "seconds\n")
