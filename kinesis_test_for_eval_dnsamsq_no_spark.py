@@ -18,8 +18,8 @@ kinesisRegionName = "us-east-1"
 # indexer_error = StringIndexerModel.read().load("s3a://siemtest22/model/indexer.model")
 #######################################################################
 ###################################################local indexer###############
-indexer_dnsmasq = ''
-model_path=''
+indexer_dnsmasq = 's3://siemtest22/siem_spark_model/model/ML_trained_model2/key_value_list.txt'
+model_path='s3://siemtest22/siem_spark_model/model/ML_trained_model2/DNS_rf_model.pkl'
 # indexer_error = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_apacheerror")
 ################################################################################
 loaded_rf_model_dnsmasq=joblib.load(model_path)
@@ -291,7 +291,7 @@ def read_txt_to_list(file_path):
 
 print("read all test set , prepare for testing")
 
-process_rdd("")
+process_rdd("s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_256000.json/part-00000-6a98527c-1963-42d6-bbe5-d47a987e764b-c000.json")
                         
 
 
