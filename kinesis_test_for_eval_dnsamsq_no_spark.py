@@ -19,7 +19,7 @@ kinesisRegionName = "us-east-1"
 #######################################################################
 ###################################################local indexer###############
 indexer_dnsmasq = 's3://siemtest22/siem_spark_model/model/ML_trained_model2/key_value_list.txt'
-model_path='s3://siemtest22/siem_spark_model/model/ML_trained_model2/DNS_rf_model.pkl'
+model_path='./model/ML_trained_model2/DNS_rf_model.pkl'
 # indexer_error = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_apacheerror")
 ################################################################################
 loaded_rf_model_dnsmasq=joblib.load(model_path)
