@@ -26,6 +26,7 @@ conf = (
     .set("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
     .set("spark.hadoop.fs.s3a.access.key", "ACCESS_KEY") \
     .set("spark.hadoop.fs.s3a.secret.key", "SECRET_ACCESS_KEY") \
+    .set("spark.sql.shuffle.partitions", "10") \
 )
 
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
@@ -179,7 +180,7 @@ def process_dnsmasq_for_pred(df_pyspark):
     df_pyspark = df_pyspark.withColumn("value2_slash_count", count_slash("value2"))
     df_pyspark = df_pyspark.withColumn("value2_asterisk_count", count_asterisk("value2"))
 
-    df_pyspark = df_pyspark.withColumn("value2_capital_count", count_capitals("value2"))
+    df_pyspark = df_pyspark.withColumn("value2_capital_count", count_capitals(col("value2")))
     df_pyspark = df_pyspark.withColumn("value2_has_file_extensions",lit(0))
 
     # window_spec_value1 = Window().orderBy("value1")
@@ -244,12 +245,6 @@ def hidden_dir(value):
     else:
         return 0
 
-
-def count_slash(s):
-    if s is not None:
-        return s.count('/')
-    else:
-        return 0
 
 def has_special_char_in_path(value):
     characters = ['%', '&', '=', '?']
@@ -606,7 +601,7 @@ def read_txt_to_list(file_path):
 data={}
 base=500
 for i in range(10):
-    data[i]=sc.textfile('s3://siemtest22/siem_spark_model/model/dnsmasq_clinet2_{num}'.format(num=base))
+    data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2__{num}.json'.format(num=base))
     base=base*2
 
 data_list=[data[x] for x in range(10)]
