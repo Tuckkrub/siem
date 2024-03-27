@@ -290,10 +290,21 @@ def read_txt_to_list(file_path):
     return lines_list
 
 print("read all test set , prepare for testing")
-
-process_rdd("s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_256000.json/part-00000-6a98527c-1963-42d6-bbe5-d47a987e764b-c000.json")
+list_spark=[
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_500.json/part-00000-51e79c96-dfad-4cb9-8387-f761ed07da1a-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_1000.json/part-00000-0811eaa8-9414-4b5c-bc11-0ca5160f384e-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_2000.json/part-00000-03e22c72-d396-4d8f-b15a-79ebae4c69f5-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_4000.json/part-00000-c631097d-b8e5-481f-b99d-891770667b58-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_8000.json/part-00000-f9ce37e9-3f1a-4af1-a7f9-6bff06dc09ae-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_16000.json/part-00000-2586894d-608f-473c-b70b-93919ab48d37-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_32000.json/part-00000-81b2bbc9-6157-432c-ad52-8b11cbedab8c-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_64000.json/part-00000-7ea1c786-a826-4735-a11c-70948baba60c-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_128000.json/part-00000-12b4f811-435f-48e7-a371-f9cb502ca53c-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_256000.json/part-00000-6a98527c-1963-42d6-bbe5-d47a987e764b-c000.json",
+    ]
+for i in list_spark:
+    process_rdd(i)
                         
-
 
 
 
