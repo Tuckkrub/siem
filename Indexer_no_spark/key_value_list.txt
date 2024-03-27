@@ -1,0 +1,1 @@
+reply <*> is <*>,forwarded <*> to <*>,query[A] <*> from <*>,query[AAAA] <*> from <*>, <*>  <*>,cached <*> is <*>,query[PTR] <*> from <*>,query[TXT] <*> from <*>,query[MX] <*> from <*>,query[SRV] <*> from <*>,such <*> or <*>
