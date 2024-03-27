@@ -301,6 +301,9 @@ list_spark=[
     "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_64000.json/part-00000-7ea1c786-a826-4735-a11c-70948baba60c-c000.json",
     "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_128000.json/part-00000-12b4f811-435f-48e7-a371-f9cb502ca53c-c000.json",
     "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_256000.json/part-00000-6a98527c-1963-42d6-bbe5-d47a987e764b-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_512000.json/part-00000-201217.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_1024000.json/part-00000-57557.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_2048000.json/part-00000-5105.json"
     ]
 for i in list_spark:
     process_rdd(i)
