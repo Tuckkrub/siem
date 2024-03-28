@@ -195,10 +195,22 @@ def read_txt_to_list(file_path):
     return lines_list
 
 print("read all test set , prepare for testing")
-
-process_rdd("s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_256000.json/part-00000-b9cbfd72-35d8-4b16-97ee-8c792620f469-c000.json")
-                        
-
-
+list_spark=[
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_500.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_1000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_2000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_4000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_8000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_16000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_32000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_64000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_128000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_256000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_512000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_1024000.json/",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_2048000.json/"
+    ]
+for i in list_spark:
+    process_rdd(i)
 
 
