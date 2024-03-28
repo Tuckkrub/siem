@@ -70,7 +70,8 @@ def encode_method(value, values_list = ['-', 'OPTIONS', 'HEAD', 'GET','POST']):
 
 
 def process_access_for_pred(df):
-    df['check_agent'] = df['agent'].apply(check_agent)
+    df['check_agent'] = df['agent'].apply(check_agent)    
+    df['code'] = df['code'].astype(str)
     df['code_ext'] = df['code'].apply(code_ext)
     df['hidden_dir'] = df['path'].apply(hidden_dir)
     df['count_slash'] = df['path'].apply(count_slash)
@@ -161,8 +162,7 @@ def process_rdd(path):
                 'entries_in_second',
                 'size_int',
                 'has_special_char_in_path',
-                'encode_method',
-                'label'
+                'encode_method'
             ]
             df_pyspark=df_pyspark[list_of_columns]
             df_pyspark['prediction']=loaded_rf_model_access.predict(df_pyspark)
