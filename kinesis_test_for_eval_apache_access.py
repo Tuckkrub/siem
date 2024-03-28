@@ -414,7 +414,7 @@ def process_apache_error_for_pred(df_pyspark):
 ###############################################################################################################
 def process_rdd(rdd):
     print("enter check")
-    start_time_process = time.time()
+    
     if not rdd.isEmpty():
         print("not empty")
         dataframes = {}
@@ -566,6 +566,7 @@ def process_rdd(rdd):
             print("***** phase 1 apache2 access log seperation ******")
             start_time_access = time.time()
             dataframes['apache2_access']=process_apache2_access(apache2_access)
+            start_time_process = time.time()
             unique_owners=dataframes['apache2_access'].select('owner').distinct()
             # unique_owners.show()
             end_time_access = time.time()
