@@ -55,7 +55,9 @@ error_regex_final_maybe=r"([^:']+:?)(('[^']+')?(\snot found or unable to stat))?
 
 def process_dnsmasq(filtered_rdd):
     #fix timestamp, create key, create value
+
     df=spark.createDataFrame(filtered_rdd)
+    start_time_process = time.time()
     df=df.withColumn("response", regexp_extract("message", dnsmasq_regex, 1)) \
     .withColumn("domain", regexp_extract("message", dnsmasq_regex, 2)) \
     .withColumn("term", regexp_extract("message", dnsmasq_regex, 3)) \
@@ -67,7 +69,7 @@ def process_dnsmasq(filtered_rdd):
     .withColumn("epoch_timestamp", unix_timestamp("time", "MMM dd HH:mm:ss yyyy")) 
     df_indexed=indexer_dnsmasq.transform(df)
     df_indexed=df_indexed.drop("pid","time","domain","term","ip_addr")
-    return df_indexed
+    return df_indexed,start_time_process
 
 
 def process_apache_error(filtered_rdd):
@@ -414,7 +416,7 @@ def process_apache_error_for_pred(df_pyspark):
 ###############################################################################################################
 def process_rdd(rdd):
     print("enter check")
-    start_time_process = time.time()
+    
     if not rdd.isEmpty():
         print("not empty")
         dataframes = {}
@@ -482,7 +484,7 @@ def process_rdd(rdd):
             
             start_time_dns = time.time()
 
-            dataframes['dnsmasq'] = process_dnsmasq(dnsmasq_rdd)
+            dataframes['dnsmasq'],start_time_process = process_dnsmasq(dnsmasq_rdd)
             # dataframes['dnsmasq'].show()
             unique_owners=dataframes['dnsmasq'].select('owner').distinct()
             # unique_owners.show()
