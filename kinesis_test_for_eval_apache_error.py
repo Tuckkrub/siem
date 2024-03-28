@@ -26,6 +26,7 @@ conf = (
     .set("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
     .set("spark.hadoop.fs.s3a.access.key", "ACCESS_KEY") \
     .set("spark.hadoop.fs.s3a.secret.key", "SECRET_ACCESS_KEY") \
+    .set("spark.sql.shuffle.partitions", "10") \
 )
 
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
