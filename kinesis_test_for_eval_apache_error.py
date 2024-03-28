@@ -668,13 +668,19 @@ def read_txt_to_list(file_path):
 # file_path2="s3://siemtest22/siem_spark_model/siem dev2/apache_access.txt"
 # data = sc.textFile(file_path2)
 # data2=sc.textFile(file_path)
-data={}
+
 # base=500
 # s3://siemtest22/siem_spark_model/eval_data/apache2_access_normalized_client13_500.txt/
 # s3://siemtest22/siem_spark_model/eval_data/apache2_error_normalized_client13_500.txt/
-base=[500,644]
-for i in range(2):
-    data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data/apache2_error_normalized_client13_{num}.txt'.format(num=base[i]))
+# base=[500,644]
+# for i in range(2):
+#     data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data/apache2_error_normalized_client13_{num}.txt'.format(num=base[i]))
+
+data={}
+base=500
+for i in range(12):
+    data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_{num}.json'.format(num=base))
+    base=base*2
 
 data_list=[data[x] for x in range(2)]
 print("read all test set , prepare for testing")

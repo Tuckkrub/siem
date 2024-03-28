@@ -26,6 +26,7 @@ conf = (
     .set("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com") \
     .set("spark.hadoop.fs.s3a.access.key", "ACCESS_KEY") \
     .set("spark.hadoop.fs.s3a.secret.key", "SECRET_ACCESS_KEY") \
+    .set("spark.sql.shuffle.partitions", "10") \
 )
 
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
@@ -666,11 +667,9 @@ def read_txt_to_list(file_path):
 # data = sc.textFile(file_path2)
 # data2=sc.textFile(file_path)
 data={}
-# base=500
-# s3://siemtest22/siem_spark_model/eval_data/apache2_access_normalized_client13_500.txt/
-base=[500,1000,2000,4000,8000,16000,32000,64000,109462]
-for i in range(9):
-    data[i]=sc.textfile('s3://siemtest22/siem_spark_model/eval_data/apache2_access_normalized_client13_{num}.txt'.format(num=base[i]))
+base=500
+for i in range(12):
+    data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_{num}.json'.format(num=base))
     base=base*2
 
 data_list=[data[x] for x in range(9)]

@@ -186,10 +186,23 @@ def read_txt_to_list(file_path):
     return lines_list
 
 print("read all test set , prepare for testing")
-
-process_rdd("s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_256000.json/part-00000-6bedb3a8-2eb7-40c1-811f-26bc9ec22c47-c000.json")
-                        
-
+list_spark=[
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_500.json/part-00000-6d1df572-e80a-4b16-b9fc-0fa14ca538bb-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_1000.json/part-00000-662bd468-79f7-4a7e-b33b-80a078824aea-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_2000.json/part-00000-bff0068e-b970-4fd7-80cc-aba3a50522fd-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_4000.json/part-00000-ffeefe82-d1f3-454e-9d5b-2229da78efc0-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_8000.json/part-00000-0c2bfa6d-d647-4b94-95ca-afabf950b8ad-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_16000.json/part-00000-23d6c759-9fda-409c-b978-f26b17459952-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_32000.json/part-00000-2bd64ab9-911e-4635-ba4c-276881c0560f-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_64000.json/part-00000-c9cc528e-2c11-4889-b98c-6dec2c266fc9-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_128000.json/part-00000-143108e9-fd9c-40a3-8aac-f51a9b19cc14-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_256000.json/part-00000-6bedb3a8-2eb7-40c1-811f-26bc9ec22c47-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_512000.json/part-00000-sskktk.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_1024000.json/part-00000-nnkkkn.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_2048000.json/part-00000-tknkn.json"
+    ]
+for i in list_spark:
+    process_rdd(i)
 
 
 

@@ -196,19 +196,19 @@ def read_txt_to_list(file_path):
 
 print("read all test set , prepare for testing")
 list_spark=[
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_500.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_1000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_2000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_4000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_8000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_16000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_32000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_64000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_128000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_256000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_512000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_1024000.json/",
-    "s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_2048000.json/"
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_500.json/part-00000-8dc6b766-b5b3-4b2a-8db6-0f275031a89a-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_1000.json/part-00000-eddd6f27-48da-4033-b299-e2ad4b0d4b92-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_2000.json/part-00000-8c37609e-8248-4116-9d67-57f2f3bab805-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_4000.json/part-00000-ddc0bac8-0e29-42c3-8825-c5b00e7531f4-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_8000.json/part-00000-44f67403-f500-4621-8829-84e20ae4b24f-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_16000.json/part-00000-34b124d8-eecb-4236-a36e-d40e86f03526-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_32000.json/part-00000-04a183b1-c861-4900-892e-6f1e84e40436-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_64000.json/part-00000-ed0898f4-cd28-4472-b198-3d0c91a2f87a-c000.json",    
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_128000.json/part-00000-a973f44e-bf1f-4382-aff9-7ac187a70154-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_256000.json/part-00000-b9cbfd72-35d8-4b16-97ee-8c792620f469-c000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_512000.json/part-00000-512000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_1024000.json/part-00000-1024000.json",
+    "s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_2048000.json/part-00000-2048000.json"
     ]
 for i in list_spark:
     process_rdd(i)
