@@ -329,72 +329,82 @@ def process_apacheaccess_for_pred(df_pyspark):
     return df_pyspark
 ##########################################for apache error####################################################
 def key_isAH(value):
-    if value is not None and value.startswith('AH'): 
-        return 1
-    else:
-        return 0
+    # if value is not None and value.startswith('AH'): 
+    #     return 1
+    # else:
+    #     return 0
+    return when(~(col(value).isNull()) & (col(value).startswith(r'AH')))
     
 # isInvalid
 def value_isInvalid(value):
-    return 1 if 'invalid' in value.lower() else 0
+    # when(col(value).rlike(pattern),1).otherwise(0)
+    # return 1 if 'invalid' in value.lower() else 0
+    return when(col(value).rlike(r'[iI][nN][vV][aA][lL][iI][dD]'),1).otherwise(0)
 
 def value_isforbidden(value):
-    return 1 if 'forbidden' in value.lower() else 0
+    # return 1 if 'forbidden' in value.lower() else 0
+    return when(col(value).rlike(r'[fF][oO][rR][bB][iI][dD][dD][eE][nN]'),1).otherwise(0)
 
 # isFail
 def value_isFail(value):
-    return 1 if 'fail' in value.lower() else 0
+    # return 1 if 'fail' in value.lower() else 0
+    return when(col(value).rlike(r'[fF][aA][iI][lL]'),1).otherwise(0)
 
 # script && not found
 def key_script_not_found(value):
-    return 1 if ('script' in value.lower()) and ('not found' in value.lower()) else 0
+    # return 1 if ('script' in value.lower()) and ('not found' in value.lower()) else 0
+    return when(col(value).rlike(r'[fF][aA][iI][lL]'),1).otherwise(0)
+
 
 # time interval (action per sec)
 
 # isFatal
 def key_isFatal(value):
-    return 1 if 'fatal' in value.lower() else 0
+    # return 1 if 'fatal' in value.lower() else 0
+    return when(col(value).rlike(r'[fF][aA][tT][aA][lL]'),1).otherwise(0)
 
 # isscandir
 def key_isscandir(value):
-    return 1 if 'scandir' in value.lower() else 0
+    # return 1 if 'scandir' in value.lower() else 0
+    return when(col(value).rlike(r'[sS][cC][aA][nN][dD][iI][rR]'),1).otherwise(0)
 
 # level isError
 def level_isError(value):
-    characters = ['error', 'emerg', 'alert', 'crit']
-    if value is not None and any(char in value.lower() for char in characters):
-        return 1
-    else:
-        return 0
+    # characters = ['error', 'emerg', 'alert', 'crit']
+    # if value is not None and any(char in value.lower() for char in characters):
+    #     return 1
+    # else:
+    #     return 0
+    return when(col(value).rlike(r'[eE][rR][rR][oO][rR]'),1). \
+        when(~(col(value).isNull()) & (col(value).rlike(r"[Ee][Mm][Ee][Rr][Gg]|[Aa][Ll][Ee][Rr][Tt]|cC][rR][iI][tT]")),1). \
+        otherwise(0)
 
 def process_apache_error_for_pred(df_pyspark):
-    df_pyspark = df_pyspark.withColumn('client', when(col('client').isNull(), 0).otherwise(1))
-    key_isAH_udf = udf(key_isAH, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_isAH", key_isAH_udf("message"))
+    # key_isAH_udf = udf(key_isAH, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isAH", key_isAH("message"))
 
-    value_isInvalid_udf = udf(value_isInvalid, IntegerType())
-    df_pyspark = df_pyspark.withColumn("value_isInvalid", value_isInvalid_udf("message"))
+    # value_isInvalid_udf = udf(value_isInvalid, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isInvalid", value_isInvalid("message"))
 
-    value_isforbidden_udf = udf(value_isforbidden, IntegerType())
-    df_pyspark = df_pyspark.withColumn("value_isforbidden", value_isforbidden_udf("message"))
+    # value_isforbidden_udf = udf(value_isforbidden, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isforbidden", value_isforbidden("message"))
 
-    value_isFail_udf = udf(value_isFail, IntegerType())
-    df_pyspark = df_pyspark.withColumn("value_isFail", value_isFail_udf("message"))
+    # value_isFail_udf = udf(value_isFail, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isFail", value_isFail("message"))
 
-    key_script_not_found_udf = udf(key_script_not_found, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_script_not_found", key_script_not_found_udf("message"))
+    # key_script_not_found_udf = udf(key_script_not_found, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_script_not_found", key_script_not_found("message"))
 
-    key_isFatal_udf = udf(key_isFatal, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_isFatal", key_isFatal_udf("message"))
+    # key_isFatal_udf = udf(key_isFatal, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isFatal", key_isFatal("message"))
 
-    key_isscandir_udf = udf(key_isscandir, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_isscandir", key_isscandir_udf("message"))
+    # key_isscandir_udf = udf(key_isscandir, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isscandir", key_isscandir("message"))
 
-    level_isError_udf = udf(level_isError, IntegerType())
-    df_pyspark = df_pyspark.withColumn("level_isError", level_isError_udf("level"))
+    # level_isError_udf = udf(level_isError, IntegerType())
+    df_pyspark = df_pyspark.withColumn("level_isError", level_isError("level"))
 
     return df_pyspark
-    
 
 ###############################################################################################################
 def process_rdd(rdd):
