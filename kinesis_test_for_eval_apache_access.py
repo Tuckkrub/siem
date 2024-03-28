@@ -610,7 +610,7 @@ def process_rdd(rdd):
                     vector_assembler=VectorAssembler(inputCols=list_of_columns, outputCol="features")
                     df_pyspark=vector_assembler.transform(df_pyspark)
                     df_pyspark=loaded_rf_model_access.transform(df_pyspark)
-                    df_pyspark.show()
+                    # df_pyspark.show()
                     end_time_access = time.time()
                     df_pyspark.agg(count(when(col('prediction')==1,1)),count(when(col('prediction')==0,0))).show()
                     elapsed_time4 = end_time_access - start_time_access
@@ -668,11 +668,12 @@ def read_txt_to_list(file_path):
 # data2=sc.textFile(file_path)
 data={}
 base=500
-for i in range(12):
+for i in range(13):
+    # s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_1000.json/
     data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data2/apache2_access_normalized_client13_{num}.json'.format(num=base))
     base=base*2
 
-data_list=[data[x] for x in range(9)]
+data_list=[data[x] for x in range(13)]
 print("read all test set , prepare for testing")
                         
 
