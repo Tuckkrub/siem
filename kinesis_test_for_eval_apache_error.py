@@ -381,6 +381,7 @@ def level_isError(value):
 
 def process_apache_error_for_pred(df_pyspark):
     # key_isAH_udf = udf(key_isAH, IntegerType())
+    df_pyspark = df_pyspark.withColumn('client', when(col('client').isNull(), 0).otherwise(1))
     df_pyspark = df_pyspark.withColumn("key_isAH", key_isAH("message"))
 
     # value_isInvalid_udf = udf(value_isInvalid, IntegerType())
