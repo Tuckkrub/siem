@@ -40,7 +40,7 @@ def check_agent(value):
     #     return 2
     # else:
     #     return 0
-    if re.search(r'[nN][mM][aA][pP]|[wW][pP][sS][cC][aA][nN]|[pP][yY][tT][hH][oO][nN][-][rR][eE][qQ][uU][eE][sS][tT][sS]',value.lower):
+    if re.search(r'[nN][mM][aA][pP]|[wW][pP][sS][cC][aA][nN]|[pP][yY][tT][hH][oO][nN][-][rR][eE][qQ][uU][eE][sS][tT][sS]',value.lower()):
         return 1
     elif re.search(r"[Mm][Oo][Zz][Ii][Ll][Ll][Aa]\/4\.0",value.lower()):
         return 2
