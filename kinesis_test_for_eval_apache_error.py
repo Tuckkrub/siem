@@ -333,8 +333,8 @@ def key_isAH(value):
     #     return 1
     # else:
     #     return 0
-    return when(~(col(value).isNull()) & (col(value).startswith(r'AH')))
-    
+    return when(~(col(value).isNull()) & (col(value).startswith(r'AH')),1).otherwise(0)
+    111
 # isInvalid
 def value_isInvalid(value):
     # when(col(value).rlike(pattern),1).otherwise(0)
