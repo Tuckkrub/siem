@@ -45,7 +45,7 @@ kinesisRegionName = "us-east-1"
 #######################################################################
 ###################################################local indexer###############
 indexer_dnsmasq = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_dnsmasq")
-indexer_error = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_apacheerror")
+# indexer_error = StringIndexerModel.read().load("s3://siemtest22/siem_spark_model/siem dev2/model/indexer_apacheerror")
 ################################################################################
 
 ################regex for building key-value ######################################################################
@@ -72,23 +72,7 @@ def process_dnsmasq(filtered_rdd):
 
 def process_apache_error(filtered_rdd):
     df=spark.createDataFrame(filtered_rdd)
-    df=df.withColumn("entity", regexp_extract("message", error_regex_final_maybe,1)) \
-    .withColumn("script_path", regexp_extract("message", error_regex_final_maybe,3)) \
-    .withColumn("not_found_msg",regexp_extract('message', error_regex_final_maybe,4)) \
-    .withColumn("error_apache",regexp_extract('message', error_regex_final_maybe,6)) \
-    .withColumn("error_apache_path",regexp_extract('message', error_regex_final_maybe,7)) \
-    .withColumn("referer",regexp_extract('message', error_regex_final_maybe,9)) \
-    .withColumn("referer_msg",regexp_extract("message",error_regex_final_maybe,10)) \
-    .withColumn("key", concat("entity",lit(" "),"error_apache",lit("<*>"),"not_found_msg","referer")) \
-    .withColumn("epoch_timestamp", unix_timestamp("time", "MMM dd HH:mm:ss.SSSSSS yyyy")) \
-    .withColumn("value",array("script_path","error_apache_path","referer_msg"))
-
-    df=df.withColumn("key",concat("key",
-                                            when(
-                                                df.referer == ", referer:", lit("<*>")).otherwise(lit(""))))
-    df=df.drop("script_path",'not_found_msg',"error_apache",'error_apache_path','referer',"referer_msg","time","pid")
-    df_indexed=indexer_error.transform(df)
-    return df_indexed
+    return df
 
 def process_apache2_access(filtered_rdd):
     df=spark.createDataFrame(filtered_rdd)
@@ -441,7 +425,7 @@ def process_rdd(rdd):
                     start_time_error = time.time()
                     unique_value = row[0]
                     df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
-                    df_temp.show()
+                    # df_temp.show()
                     # send to anomaly module
                     end_time_error = time.time()
 
@@ -464,7 +448,8 @@ def process_rdd(rdd):
                     vector_assembler=VectorAssembler(inputCols=list_of_columns, outputCol="features")
                     df_pyspark=vector_assembler.transform(df_pyspark)
                     df_pyspark=loaded_rf_model_error.transform(df_pyspark)
-                    df_pyspark.collect()
+                    # df_pyspark.collect()
+                    df_pyspark.agg(count(when(col('prediction')==1,1)),count(when(col('prediction')==0,0))).show()
                     end_time_error = time.time()
                     elapsed_time3 = end_time_error - start_time_error
                     print(f"Anomaly detection time <apache_error_phase_3_{owner}>:", elapsed_time3, "seconds\n")
@@ -676,11 +661,12 @@ def read_txt_to_list(file_path):
 
 data={}
 base=500
-for i in range(12):
+for i in range(13):
+    # s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_2048000.json/
     data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data2/apache2_error_normalized_client3_{num}.json'.format(num=base))
     base=base*2
 
-data_list=[data[x] for x in range(2)]
+data_list=[data[x] for x in range(13)]
 print("read all test set , prepare for testing")
                         
 
