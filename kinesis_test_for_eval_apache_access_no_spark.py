@@ -34,9 +34,15 @@ error_regex_final_maybe=r"([^:']+:?)(('[^']+')?(\snot found or unable to stat))?
 ###########################################for apache access#########################################################
 # Define Function
 def check_agent(value):    
-    if 'nmap' in value.lower() or 'wpscan' in value.lower() or 'python-requests' in value.lower():
+    # if 'nmap' in value.lower() or 'wpscan' in value.lower() or 'python-requests' in value.lower():
+    #     return 1
+    # elif 'mozilla/4.0 ' in value.lower():
+    #     return 2
+    # else:
+    #     return 0
+    if re.search(r'[nN][mM][aA][pP]|[wW][pP][sS][cC][aA][nN]|[pP][yY][tT][hH][oO][nN][-][rR][eE][qQ][uU][eE][sS][tT][sS]',value.lower):
         return 1
-    elif 'mozilla/4.0 ' in value.lower():
+    elif re.search(r"[Mm][Oo][Zz][Ii][Ll][Ll][Aa]\/4\.0",value.lower()):
         return 2
     else:
         return 0
@@ -45,28 +51,54 @@ def code_ext(value):
     return int(value[0])
 
 def hidden_dir(value):
-    if isinstance(value, str) and (value.startswith('/.') or value.startswith('/~') or value.startswith('/_')):
+    # if isinstance(value, str) and (value.startswith('/.') or value.startswith('/~') or value.startswith('/_')):
+    #     return 1
+    # else:
+    #     return 0
+    if isinstance(value,str) and (re.search(r'^\/\.|^\/~|^\/_',value)):
         return 1
     else:
         return 0
 
 def count_slash(s):
-    if isinstance(s, str):  # Check if 's' is a string
-        return s.count('/')
+    # if isinstance(s, str):  # Check if 's' is a string
+    #     return s.count('/')
+    # else:
+    #     return 0
+    if isinstance(s, str):
+        num=re.findall('/',s)
+        return len(num)
     else:
         return 0
-
+    
 def has_special_char_in_path(value):
-    if pd.notna(value) and isinstance(value, str) and any(char in value for char in ['%', '&', '=', '?']):
+    # if pd.notna(value) and isinstance(value, str) and any(char in value for char in ['%', '&', '=', '?']):
+    #     return 1
+    # else:
+    #     return 0
+    if pd.notna(value) and isinstance(value, str) and (re.search(r'[%&=\?]',value)):
         return 1
     else:
         return 0
 
-def encode_method(value, values_list = ['-', 'OPTIONS', 'HEAD', 'GET','POST']):
+def encode_method(value):
+    # try:
+    #     return values_list.index(value)
+    # except ValueError:
+    #     return -1  # Return -1 if value is not found in the list   
     try:
-        return values_list.index(value)
+        if re.search(r'-',value):
+            return 0
+        elif re.search(r"OPTIONS",value):
+            return 1
+        elif re.search(r"HEAD",value):
+            return 2
+        elif re.search(r"GET",value):
+            return 3
+        elif re.search(r"POST",value):
+            return 4
     except ValueError:
-        return -1  # Return -1 if value is not found in the list   
+        return -1
 
 
 def process_access_for_pred(df):
@@ -111,9 +143,12 @@ def process_access(df):  # Replace 'your_regex_pattern_here' with your actual re
 
 ###############################################################################################################
 def process_rdd(path):
+    
     df=pd.read_json(path,lines=True)
+    
     print("enter check")
     start_time_process = time.time()
+    
     print("***** phase 1 access log seperation ******")
     df=process_access(df)
             
