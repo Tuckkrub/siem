@@ -441,16 +441,14 @@ def process_rdd(rdd):
                     start_time_error = time.time()
                     unique_value = row[0]
                     df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
-                    df_pyspark = df_temp.alias("df_pyspark")
-                    # df_temp.show()
+                    df_temp.show()
                     # send to anomaly module
-                    end_time_error = time.time()
+                    end_time_dns = time.time()
 
-                    elapsed_time2 = end_time_error - start_time_error
+                    elapsed_time2 = end_time_dns - start_time_dns
                     print("log seperation time <apache_error_phase_2>:", elapsed_time2, "seconds\n")
                     print("***** phase 3 apache error  anomaly detection ******")
                     start_time_error = time.time()
-                    df_pyspark = df_pyspark.withColumn('client', when(col('client').isNull(), 0).otherwise(1))
                     df_pyspark=process_apache_error_for_pred(df_pyspark)
                     list_of_columns = [
                         'client',
@@ -466,8 +464,7 @@ def process_rdd(rdd):
                     vector_assembler=VectorAssembler(inputCols=list_of_columns, outputCol="features")
                     df_pyspark=vector_assembler.transform(df_pyspark)
                     df_pyspark=loaded_rf_model_error.transform(df_pyspark)
-                    # df_pyspark.collect()
-                    df_pyspark.agg(count(when(col('prediction')==1,1)),count(when(col('prediction')==0,0))).show()
+                    df_pyspark.collect()
                     end_time_error = time.time()
                     elapsed_time3 = start_time_error - end_time_error
                     print(f"Anomaly detection time <apache_error_phase_3_{owner}>:", elapsed_time4, "seconds\n")
