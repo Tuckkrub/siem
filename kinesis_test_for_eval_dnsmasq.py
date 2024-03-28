@@ -668,11 +668,11 @@ def read_txt_to_list(file_path):
 # data2=sc.textFile(file_path)
 data={}
 base=500
-for i in range(12):
+for i in range(13):
     data[i]=sc.textFile('s3://siemtest22/siem_spark_model/eval_data2/dnsmasq_client2_{num}.json'.format(num=base))
     base=base*2
 
-data_list=[data[x] for x in range(12)]
+data_list=[data[x] for x in range(13)]
 print("read all test set , prepare for testing")
                         
 
