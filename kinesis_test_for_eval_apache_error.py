@@ -412,6 +412,7 @@ def process_rdd(rdd):
             start_time_error = time.time()
             
             dataframes['apache_error'] = process_apache_error(apache_error)
+            start_time_process = time.time()
             # dataframes['apache_error'].show()
             end_time_error = time.time()
             elapsed_time1 = end_time_error - start_time_error
