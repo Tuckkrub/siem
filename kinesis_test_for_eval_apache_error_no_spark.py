@@ -85,6 +85,8 @@ def process_apache_error_for_pred(df):
     df['key_isFatal'] = df['message'].apply(key_isFatal)
     df['key_isscandir'] = df['message'].apply(key_isscandir)
 
+    df['client'] = df['client'].notnull().astype(int)    
+
     df['level_isError'] = df['level'].apply(level_isError)
     return df
 
@@ -152,8 +154,7 @@ def process_rdd(path):
                 'key_script_not_found',
                 'key_isFatal',
                 'key_isscandir',
-                'level_isError',
-                'label'
+                'level_isError'
                 ]
             df_pyspark=df_pyspark[list_of_columns]
             df_pyspark['prediction']=loaded_rf_model_apache_error.predict(df_pyspark)
