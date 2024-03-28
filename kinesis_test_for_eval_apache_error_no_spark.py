@@ -35,40 +35,39 @@ error_regex_final_maybe=r"([^:']+:?)(('[^']+')?(\snot found or unable to stat))?
 
 # Define Function
 def key_isAH(value):
-    if value is not None and value.startswith('AH'): 
+    if value is not None and (re.search(r'^\/\.|^\/~|^\/_',value)): 
         return 1
     else:
         return 0
     
 # isInvalid
 def value_isInvalid(value):
-    return 1 if 'invalid' in value.lower() else 0
+    return 1 if re.search(r'invalid',value.lower()) else 0
 
 def value_isforbidden(value):
-    return 1 if 'forbidden' in value.lower() else 0
+    return 1 if re.search(r'forbidden',value.lower()) else 0
 
 # isFail
 def value_isFail(value):
-    return 1 if 'fail' in value.lower() else 0
+    return 1 if re.search(r'fail',value.lower()) else 0
 
 # script && not found
 def key_script_not_found(value):
-    return 1 if ('script' in value.lower()) and ('not found' in value.lower()) else 0
+    return 1 if (re.search(r'script',value.lower())) and (re.search(r'not found',value.lower())) else 0
 
 # time interval (action per sec)
 
 # isFatal
 def key_isFatal(value):
-    return 1 if 'fatal' in value.lower() else 0
+    return 1 if (re.search(r'fatal',value.lower())) else 0
 
 # isscandir
 def key_isscandir(value):
-    return 1 if 'scandir' in value.lower() else 0
+    return 1 if (re.search(r'scandir',value.lower())) else 0
 
 # level isError
 def level_isError(value):
-    characters = ['error', 'emerg', 'alert', 'crit']
-    if value is not None and any(char in value.lower() for char in characters):
+    if value is not None and (re.search(r'error|emrg|alert|crit',value.lower())):
         return 1
     else:
         return 0
