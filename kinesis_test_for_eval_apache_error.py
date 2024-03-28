@@ -425,8 +425,8 @@ def process_rdd(rdd):
             for row in unique_owners.collect():
                     # since only 1 column is collected , so it's always at row[0]
                     start_time_error = time.time()
-                    unique_value = row[0]
-                    df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
+                    owner = row[0]
+                    df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == owner)
                     # df_temp.show()
                     df_pyspark = df_temp.alias("df_pyspark")
                     # send to anomaly module
