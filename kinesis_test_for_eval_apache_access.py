@@ -285,7 +285,7 @@ def hidden_dir(value):
     #     return 1
     # else:
     #     return 0
-    return when(col(value).startswith(r'\/\.') or col(value).startswith(r'\/~') or col(value).startswith(r'\/_'),1).otherwise(0)
+    return when(col(value).startswith(r'\/\.') | col(value).startswith(r'\/~') | col(value).startswith(r'\/_'),1).otherwise(0)
 
 
 def count_slash(s):
