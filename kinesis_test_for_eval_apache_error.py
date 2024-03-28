@@ -427,6 +427,7 @@ def process_rdd(rdd):
                     unique_value = row[0]
                     df_temp = dataframes['apache_error'].filter(dataframes['apache_error']['owner'] == unique_value)
                     # df_temp.show()
+                    df_pyspark = df_temp.alias("df_pyspark")
                     # send to anomaly module
                     end_time_error = time.time()
 
