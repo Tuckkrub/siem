@@ -1,7 +1,7 @@
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kinesis import KinesisUtils, InitialPositionInStream
-from pyspark.sql.functions import col,regexp_extract,concat,lit,array,unix_timestamp,when,row_number,from_unixtime, substring,monotonically_increasing_id
+from pyspark.sql.functions import col,regexp_extract,concat,lit,array,unix_timestamp,when,row_number,from_unixtime, substring,monotonically_increasing_id,size,split
 from pyspark.sql import Row
 from pyspark.sql import SparkSession
 import json 
@@ -266,54 +266,68 @@ def process_dnsmasq_for_pred(df_pyspark):
 # Define Function
 
 def check_agent(value):    
-    if 'nmap' in value.lower() or 'wpscan' in value.lower() or 'python-requests' in value.lower():
-        return 1
-    elif 'mozilla/4.0 ' in value.lower():
-        return 2
-    else:
-        return 0
+    # if 'nmap' in value.lower() or 'wpscan' in value.lower() or 'python-requests' in value.lower():
+    #     return 1
+    # elif 'mozilla/4.0 ' in value.lower():
+    #     return 2
+    # else:
+    #     return 0
+    return when(col(value).rlike(r'[nN][mM][aA][pP]|[wW][pP][sS][cC][aA][nN]|[pP][yY][tT][hH][oO][nN][-][rR][eE][qQ][uU][eE][sS][tT][sS]'),1). \
+        when(col(value).rlike(r"[Mm][Oo][Zz][Ii][Ll][Ll][Aa]\/4\.0"),2). \
+        otherwise(0)
     
 def code_ext(value):
-    return int(value[0])
+    # return int(value[0])
+    return col(value).substr(0, 1).cast("integer")
 
 def hidden_dir(value):
-    if value is not None and (value.startswith('/.') or value.startswith('/~') or value.startswith('/_')):
-        return 1
-    else:
-        return 0
+    # if value is not None and (value.startswith('/.') or value.startswith('/~') or value.startswith('/_')):
+    #     return 1
+    # else:
+    #     return 0
+    return when(col(value).startswith(r'\/\.') or col(value).startswith(r'\/~') or col(value).startswith(r'\/_'),1).otherwise(0)
 
 
 def count_slash(s):
-    if s is not None:
-        return s.count('/')
-    else:
-        return 0
+    # if s is not None:
+    #     return s.count('/')
+    # else:
+    #     return 0
+    return when(col(s).startswith(r'None|none|null|Null'),size(split(col(s), r"\/")) - 1).otherwise(0)
 
 def has_special_char_in_path(value):
-    characters = ['%', '&', '=', '?']
-    if value is not None and any(char in value for char in characters):
-        return 1
-    else:
-        return 0
+    # characters = ['%', '&', '=', '?']
+    # if value is not None and any(char in value for char in characters):
+    #     return 1
+    # else:
+    #     return 0
+    return when(col(value).rlike(r'%|&|=|\?'),1).otherwise(0)
 
 # request method
-def encode_method(value, values_list = ['-', 'OPTIONS', 'HEAD', 'GET','POST']):
-    try:
-        return values_list.index(value)
-    except ValueError:
-        return -1  # Return -1 if value is not found in the list   
+def encode_method(value):
+    # try:
+    #     return values_list.index(value)
+    # except ValueError:
+    #     return -1  # Return -1 if value is not found in the list   
+    return when(col(value).rlike(r'-'),0). \
+        when(col(value).rlike(r"OPTIONS"),1). \
+        when(col(value).rlike(r"HEAD"),2). \
+        when(col(value).rlike(r"GET"),3). \
+        when(col(value).rlike(r"POST"),4). \
+        otherwise(-1)
+
 def process_apacheaccess_for_pred(df_pyspark):
-    check_agent_udf = udf(check_agent, IntegerType())
-    df_pyspark = df_pyspark.withColumn("check_agent", check_agent_udf("agent"))
+    # check_agent_udf = udf(check_agent, IntegerType())
+    df_pyspark = df_pyspark.withColumn("check_agent", check_agent("agent"))
 
-    code_ext_udf = udf(code_ext, IntegerType())
-    df_pyspark = df_pyspark.withColumn("code_ext", code_ext_udf("code"))
+    # code_ext_udf = udf(code_ext, IntegerType())
+    df_pyspark = df_pyspark.withColumn("code_ext", code_ext("code"))
 
-    hidden_dir_udf = udf(hidden_dir, IntegerType())
-    df_pyspark = df_pyspark.withColumn("hidden_dir", hidden_dir_udf("path"))
+    # hidden_dir_udf = udf(hidden_dir, IntegerType())
+    df_pyspark = df_pyspark.withColumn("hidden_dir", hidden_dir("path"))
 
-    count_slash_udf = udf(count_slash, IntegerType())
-    df_pyspark = df_pyspark.withColumn("count_slash", count_slash_udf("path"))
+    # count_slash_udf = udf(count_slash, IntegerType())
+    df_pyspark = df_pyspark.withColumn("count_slash", count_slash("path"))
 
 
 
@@ -335,13 +349,13 @@ def process_apacheaccess_for_pred(df_pyspark):
 
 
 
-    has_special_char_in_path_udf = udf(has_special_char_in_path, IntegerType())
-    df_pyspark = df_pyspark.withColumn("has_special_char_in_path", has_special_char_in_path_udf("path"))
+    # has_special_char_in_path_udf = udf(has_special_char_in_path, IntegerType())
+    df_pyspark = df_pyspark.withColumn("has_special_char_in_path", has_special_char_in_path("path"))
 
     df_pyspark = df_pyspark.withColumn("size_int", col("size").cast("int"))
 
-    encode_method_udf = udf(encode_method, IntegerType())
-    df_pyspark = df_pyspark.withColumn("encode_method", encode_method_udf("method"))
+    # encode_method_udf = udf(encode_method, IntegerType())
+    df_pyspark = df_pyspark.withColumn("encode_method", encode_method("method"))
     return df_pyspark
 ##########################################for apache error####################################################
 def key_isAH(value):
@@ -352,28 +366,36 @@ def key_isAH(value):
     
 # isInvalid
 def value_isInvalid(value):
-    return 1 if 'invalid' in value.lower() else 0
+    # when(col(value).rlike(pattern),1).otherwise(0)
+    # return 1 if 'invalid' in value.lower() else 0
+    return when(col(value).rlike(r'[iI][nN][vV][aA][lL][iI][dD]'),1).otherwise(0)
 
 def value_isforbidden(value):
-    return 1 if 'forbidden' in value.lower() else 0
+    # return 1 if 'forbidden' in value.lower() else 0
+    return when(col(value).rlike(r'[fF][oO][rR][bB][iI][dD][dD][eE][nN]'),1).otherwise(0)
 
 # isFail
 def value_isFail(value):
-    return 1 if 'fail' in value.lower() else 0
+    # return 1 if 'fail' in value.lower() else 0
+    return when(col(value).rlike(r'[fF][aA][iI][lL]'),1).otherwise(0)
 
 # script && not found
 def key_script_not_found(value):
-    return 1 if ('script' in value.lower()) and ('not found' in value.lower()) else 0
+    # return 1 if ('script' in value.lower()) and ('not found' in value.lower()) else 0
+    return when(col(value).rlike(r'[fF][aA][iI][lL]'),1).otherwise(0)
+
 
 # time interval (action per sec)
 
 # isFatal
 def key_isFatal(value):
-    return 1 if 'fatal' in value.lower() else 0
+    # return 1 if 'fatal' in value.lower() else 0
+    return when(col(value).rlike(r'[fF][aA][tT][aA][lL]'),1).otherwise(0)
 
 # isscandir
 def key_isscandir(value):
-    return 1 if 'scandir' in value.lower() else 0
+    # return 1 if 'scandir' in value.lower() else 0
+    return when(col(value).rlike(r'[sS][cC][aA][nN][dD][iI][rR]'),1).otherwise(0)
 
 # level isError
 def level_isError(value):
@@ -384,26 +406,26 @@ def level_isError(value):
         return 0
 
 def process_apache_error_for_pred(df_pyspark):
-    key_isAH_udf = udf(key_isAH, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_isAH", key_isAH_udf("message"))
+    # key_isAH_udf = udf(key_isAH, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isAH", key_isAH("message"))
 
-    value_isInvalid_udf = udf(value_isInvalid, IntegerType())
-    df_pyspark = df_pyspark.withColumn("value_isInvalid", value_isInvalid_udf("message"))
+    # value_isInvalid_udf = udf(value_isInvalid, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isInvalid", value_isInvalid("message"))
 
-    value_isforbidden_udf = udf(value_isforbidden, IntegerType())
-    df_pyspark = df_pyspark.withColumn("value_isforbidden", value_isforbidden_udf("message"))
+    # value_isforbidden_udf = udf(value_isforbidden, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isforbidden", value_isforbidden("message"))
 
-    value_isFail_udf = udf(value_isFail, IntegerType())
-    df_pyspark = df_pyspark.withColumn("value_isFail", value_isFail_udf("message"))
+    # value_isFail_udf = udf(value_isFail, IntegerType())
+    df_pyspark = df_pyspark.withColumn("value_isFail", value_isFail("message"))
 
-    key_script_not_found_udf = udf(key_script_not_found, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_script_not_found", key_script_not_found_udf("message"))
+    # key_script_not_found_udf = udf(key_script_not_found, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_script_not_found", key_script_not_found("message"))
 
-    key_isFatal_udf = udf(key_isFatal, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_isFatal", key_isFatal_udf("message"))
+    # key_isFatal_udf = udf(key_isFatal, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isFatal", key_isFatal("message"))
 
-    key_isscandir_udf = udf(key_isscandir, IntegerType())
-    df_pyspark = df_pyspark.withColumn("key_isscandir", key_isscandir_udf("message"))
+    # key_isscandir_udf = udf(key_isscandir, IntegerType())
+    df_pyspark = df_pyspark.withColumn("key_isscandir", key_isscandir("message"))
 
     level_isError_udf = udf(level_isError, IntegerType())
     df_pyspark = df_pyspark.withColumn("level_isError", level_isError_udf("level"))
