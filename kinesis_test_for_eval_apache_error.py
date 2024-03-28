@@ -398,7 +398,7 @@ def process_apache_error_for_pred(df_pyspark):
 ###############################################################################################################
 def process_rdd(rdd):
     print("enter check")
-    start_time_process = time.time()
+    
     if not rdd.isEmpty():
         print("not empty")
         dataframes = {}
